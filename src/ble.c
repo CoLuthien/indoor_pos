@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+static int ble_cancel_connect (struct ble_t* self); 
 struct ble_t* ble_init()
 {
     int dev = hci_open_dev(hci_get_route(NULL));
@@ -154,8 +155,36 @@ int ble_get_scan_result (struct ble_t* self, bdaddr_t* dest, int timeout)
             }
         }
     }
+}
 
+static int ble_cancel_connect (struct ble_t* self, int timeout)
+{
+    int ret = 0;
+    struct hci_request rq = {0, };
+    evt_le_connection_complete evt = {0, };
+    rq.ogf = OGF_LE_CTL;
+    rq.ocf = OCF_LE_CREATE_CONN_CANCEL;
+    rq.event = EVT_LE_CONN_COMPLETE;
+    rq.cparam = NULL;
+    rq.clen = 0;
+    rq.rparam = &evt;
+    rq.rlen = EVT_LE_CONN_COMPLETE_SIZE;
 
+    return hci_send_req (self->device, &rq, timeout);
+}
 
+int ble_try_connect (struct ble_t* self, bdaddr_t addr, int timeout)
+{
+    uint16_t handle = 0;
+    int ret = hci_le_create_conn(self->device, 0x0030, 0x0030,
+        0x00, 0x00, addr, 0x00, 0x0010, 0x0020, 0x0010,
+        0x100, 0x00, 0x10, &handle, timeout);
+    
+    if (ret < 0)
+    {
+        //something happen.
+        return ble_cancel_connect(self, 100);// need dynamic!
+    }
 
+    return handle;
 }

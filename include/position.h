@@ -19,8 +19,7 @@ struct position_t
     float cur_x, cur_y;
 };
 
-int pos_scan_perimeter(struct position_t* self);
-int pos_query_to_server(struct position_t* self);
-int pos_parse_query(struct position_t* self, uint8_t* buf, size_t len);
-int pos_process_query(struct position_t* self);
-
+int pos_scan_perimeter (struct position_t* self);
+int pos_query_to_server (struct position_t* self);
+int pos_process_query (struct position_t* self, uint8_t* buf, size_t len);
+int pos_estimate_position (struct position_t* self);
