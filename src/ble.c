@@ -165,7 +165,7 @@ static int ble_cancel_connect (struct ble_t* self, int timeout)
     return hci_send_req (self->device, &rq, timeout);
 }
 
-int ble_try_connect (struct ble_t* self, bdaddr_t addr, int timeout)
+int ble_try_connect (struct ble_t* self, bdaddr_t addr, uint16_t* dst, int timeout)
 {
     uint16_t handle = 0;
     int ret = hci_le_create_conn(self->device, 0x0030, 0x0030,
@@ -175,8 +175,14 @@ int ble_try_connect (struct ble_t* self, bdaddr_t addr, int timeout)
     if (ret < 0)
     {
         //something happen.
-        return ble_cancel_connect(self, 100);// need dynamic!
+        return ble_cancel_connect(self, timeout);// need dynamic!
     }
 
-    return handle;
+    *dst = handle;
+    return 0;
+}
+
+int ble_read_rssi (struct ble_t* self, uint16_t handle, int8_t* dest, int timeout)
+{
+    return hci_read_rssi (self->device, handle, &dest, timeout);
 }

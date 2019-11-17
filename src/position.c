@@ -105,6 +105,50 @@ int pos_process_packet (struct position_t* self, int timeout)
 
 }
 
+int pos_estimate_position (struct position_t* self, int timeout)
+{
+    struct list* cand_list = &self->active_list.head;
+    struct list_elem* e = NULL;
+    struct list_elem* end = list_end (cand_list);
+    struct node_basic* cur = NULL;
+    struct node_info* info = NULL;
+
+    struct ble_t* ble = self->ble;
+    float est_x, est_y;
+    int list_len = self->active_list.len;
+    int ret = 0;
+
+    int time_to_process = timeout / list_len;
+        
+    for (e = list_front (cand_list); e != end; e = list_next(e))
+    {
+        cur = node_get_elem (e);
+        info = cur->info;
+        if (cur->status == CONNECTED)
+        {
+            ret = hci_read_rssi(ble->device, info->handle, &info->rssi, time_to_process);
+        }
+        else
+        {
+            ret = ble_try_connect (ble, cur->addr, &info->handle, time_to_process);
+        }
+
+        if (ret < 0)
+        {
+            cur->status = ERROR;
+            continue;
+        }
+    }
+
+
+
+
+    self->cur_x = est_x;
+    self->cur_y = est_y;
+
+    return 0;        
+}
+
 int pos_process_query_result (struct position_t* self, mavlink_message_t* msg)
 {
     mavlink_query_result_t res;

@@ -14,7 +14,8 @@ enum node_status
     FOUND, // found on scan, not sure to use
     READY, // DB confirm to use
     ACTIVE,// wait on connecting queue
-    CONNECTED
+    CONNECTED,
+    ERROR
 };
 
 struct node_basic

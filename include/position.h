@@ -12,14 +12,15 @@ struct position_t
 {
     struct ble_t* ble;
     struct comm_t* com;
-    struct node_list unknown_list, ready_list, active_list;
+    struct node_list ready_list, active_list;
     uint8_t status;
     
     bool pos_valid;
     float cur_x, cur_y;
 };
 
-int pos_scan_perimeter (struct position_t* self);
-int pos_query_to_server (struct position_t* self);
-int pos_process_query (struct position_t* self, uint8_t* buf, size_t len);
-int pos_estimate_position (struct position_t* self);
+struct position_t* pos_init ();
+
+void pos_scan_perimeter (struct position_t* self, int timeout);
+int pos_process_packet (struct position_t* self, int timeout);
+int pos_estimate_position (struct position_t* self, int timeout);
