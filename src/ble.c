@@ -126,7 +126,7 @@ inline int ble_stop_scan(struct ble_t* self)
     return -1;
 }
 
-
+// error -1, no response 0, success > 0
 int ble_get_scan_result (struct ble_t* self, bdaddr_t* dest, int timeout)
 {
     uint8_t buf[HCI_MAX_EVENT_SIZE];
@@ -136,25 +136,17 @@ int ble_get_scan_result (struct ble_t* self, bdaddr_t* dest, int timeout)
     self->pfd.events = POLLIN;
 
     ret = poll(&self->pfd, 1, timeout);
-    if (ret < 0)
+    if (self->pfd.revents & POLLIN)
     {
-        return -1;// ToDo error handle poll error
-    }
-    else if (ret == 0)
-    {
-        return 0; // nothing arrive. 
-    }
-    else // something arrive
-    {
-        if (self->pfd.revents & POLLIN)
+        len = read(self->device, buf, HCI_MAX_EVENT_SIZE);
+        if (len >= HCI_EVENT_HDR_SIZE)
         {
-            len = read(self->device, buf, HCI_MAX_EVENT_SIZE);
-            if (len >= HCI_EVENT_HDR_SIZE)
-            {
-                ble_parse_scan_result(buf, len, dest);
-            }
+            ble_parse_scan_result(buf, len, dest);
+            ret = len;
         }
-    }
+     }
+   
+    return ret;
 }
 
 static int ble_cancel_connect (struct ble_t* self, int timeout)
