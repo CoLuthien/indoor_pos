@@ -5,20 +5,19 @@
 
 MAVPACKED(
 typedef struct __mavlink_query_result_t {
- uint8_t msg_type; /*<  message type*/
  uint8_t addr[6]; /*<  mac address of drone*/
  uint8_t sys_stat; /*<   status of system*/
  uint8_t node_cnt; /*<   number of correct nodes*/
  uint8_t match_addrs[48]; /*<   matched node's addr*/
 }) mavlink_query_result_t;
 
-#define MAVLINK_MSG_ID_query_result_LEN 57
-#define MAVLINK_MSG_ID_query_result_MIN_LEN 57
-#define MAVLINK_MSG_ID_3_LEN 57
-#define MAVLINK_MSG_ID_3_MIN_LEN 57
+#define MAVLINK_MSG_ID_query_result_LEN 56
+#define MAVLINK_MSG_ID_query_result_MIN_LEN 56
+#define MAVLINK_MSG_ID_3_LEN 56
+#define MAVLINK_MSG_ID_3_MIN_LEN 56
 
-#define MAVLINK_MSG_ID_query_result_CRC 168
-#define MAVLINK_MSG_ID_3_CRC 168
+#define MAVLINK_MSG_ID_query_result_CRC 122
+#define MAVLINK_MSG_ID_3_CRC 122
 
 #define MAVLINK_MSG_query_result_FIELD_ADDR_LEN 6
 #define MAVLINK_MSG_query_result_FIELD_MATCH_ADDRS_LEN 48
@@ -27,23 +26,21 @@ typedef struct __mavlink_query_result_t {
 #define MAVLINK_MESSAGE_INFO_query_result { \
     3, \
     "query_result", \
-    5, \
-    {  { "msg_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 0, offsetof(mavlink_query_result_t, msg_type) }, \
-         { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 1, offsetof(mavlink_query_result_t, addr) }, \
-         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_query_result_t, sys_stat) }, \
-         { "node_cnt", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_query_result_t, node_cnt) }, \
-         { "match_addrs", NULL, MAVLINK_TYPE_UINT8_T, 48, 9, offsetof(mavlink_query_result_t, match_addrs) }, \
+    4, \
+    {  { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 0, offsetof(mavlink_query_result_t, addr) }, \
+         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_query_result_t, sys_stat) }, \
+         { "node_cnt", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_query_result_t, node_cnt) }, \
+         { "match_addrs", NULL, MAVLINK_TYPE_UINT8_T, 48, 8, offsetof(mavlink_query_result_t, match_addrs) }, \
          } \
 }
 #else
 #define MAVLINK_MESSAGE_INFO_query_result { \
     "query_result", \
-    5, \
-    {  { "msg_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 0, offsetof(mavlink_query_result_t, msg_type) }, \
-         { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 1, offsetof(mavlink_query_result_t, addr) }, \
-         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_query_result_t, sys_stat) }, \
-         { "node_cnt", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_query_result_t, node_cnt) }, \
-         { "match_addrs", NULL, MAVLINK_TYPE_UINT8_T, 48, 9, offsetof(mavlink_query_result_t, match_addrs) }, \
+    4, \
+    {  { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 0, offsetof(mavlink_query_result_t, addr) }, \
+         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_query_result_t, sys_stat) }, \
+         { "node_cnt", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_query_result_t, node_cnt) }, \
+         { "match_addrs", NULL, MAVLINK_TYPE_UINT8_T, 48, 8, offsetof(mavlink_query_result_t, match_addrs) }, \
          } \
 }
 #endif
@@ -54,7 +51,6 @@ typedef struct __mavlink_query_result_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param msg_type  message type
  * @param addr  mac address of drone
  * @param sys_stat   status of system
  * @param node_cnt   number of correct nodes
@@ -62,19 +58,17 @@ typedef struct __mavlink_query_result_t {
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_query_result_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-                               uint8_t msg_type, const uint8_t *addr, uint8_t sys_stat, uint8_t node_cnt, const uint8_t *match_addrs)
+                               const uint8_t *addr, uint8_t sys_stat, uint8_t node_cnt, const uint8_t *match_addrs)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_query_result_LEN];
-    _mav_put_uint8_t(buf, 0, msg_type);
-    _mav_put_uint8_t(buf, 7, sys_stat);
-    _mav_put_uint8_t(buf, 8, node_cnt);
-    _mav_put_uint8_t_array(buf, 1, addr, 6);
-    _mav_put_uint8_t_array(buf, 9, match_addrs, 48);
+    _mav_put_uint8_t(buf, 6, sys_stat);
+    _mav_put_uint8_t(buf, 7, node_cnt);
+    _mav_put_uint8_t_array(buf, 0, addr, 6);
+    _mav_put_uint8_t_array(buf, 8, match_addrs, 48);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_query_result_LEN);
 #else
     mavlink_query_result_t packet;
-    packet.msg_type = msg_type;
     packet.sys_stat = sys_stat;
     packet.node_cnt = node_cnt;
     mav_array_memcpy(packet.addr, addr, sizeof(uint8_t)*6);
@@ -92,7 +86,6 @@ static inline uint16_t mavlink_msg_query_result_pack(uint8_t system_id, uint8_t 
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param msg_type  message type
  * @param addr  mac address of drone
  * @param sys_stat   status of system
  * @param node_cnt   number of correct nodes
@@ -101,19 +94,17 @@ static inline uint16_t mavlink_msg_query_result_pack(uint8_t system_id, uint8_t 
  */
 static inline uint16_t mavlink_msg_query_result_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
                                mavlink_message_t* msg,
-                                   uint8_t msg_type,const uint8_t *addr,uint8_t sys_stat,uint8_t node_cnt,const uint8_t *match_addrs)
+                                   const uint8_t *addr,uint8_t sys_stat,uint8_t node_cnt,const uint8_t *match_addrs)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_query_result_LEN];
-    _mav_put_uint8_t(buf, 0, msg_type);
-    _mav_put_uint8_t(buf, 7, sys_stat);
-    _mav_put_uint8_t(buf, 8, node_cnt);
-    _mav_put_uint8_t_array(buf, 1, addr, 6);
-    _mav_put_uint8_t_array(buf, 9, match_addrs, 48);
+    _mav_put_uint8_t(buf, 6, sys_stat);
+    _mav_put_uint8_t(buf, 7, node_cnt);
+    _mav_put_uint8_t_array(buf, 0, addr, 6);
+    _mav_put_uint8_t_array(buf, 8, match_addrs, 48);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_query_result_LEN);
 #else
     mavlink_query_result_t packet;
-    packet.msg_type = msg_type;
     packet.sys_stat = sys_stat;
     packet.node_cnt = node_cnt;
     mav_array_memcpy(packet.addr, addr, sizeof(uint8_t)*6);
@@ -135,7 +126,7 @@ static inline uint16_t mavlink_msg_query_result_pack_chan(uint8_t system_id, uin
  */
 static inline uint16_t mavlink_msg_query_result_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_query_result_t* query_result)
 {
-    return mavlink_msg_query_result_pack(system_id, component_id, msg, query_result->msg_type, query_result->addr, query_result->sys_stat, query_result->node_cnt, query_result->match_addrs);
+    return mavlink_msg_query_result_pack(system_id, component_id, msg, query_result->addr, query_result->sys_stat, query_result->node_cnt, query_result->match_addrs);
 }
 
 /**
@@ -149,14 +140,13 @@ static inline uint16_t mavlink_msg_query_result_encode(uint8_t system_id, uint8_
  */
 static inline uint16_t mavlink_msg_query_result_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_query_result_t* query_result)
 {
-    return mavlink_msg_query_result_pack_chan(system_id, component_id, chan, msg, query_result->msg_type, query_result->addr, query_result->sys_stat, query_result->node_cnt, query_result->match_addrs);
+    return mavlink_msg_query_result_pack_chan(system_id, component_id, chan, msg, query_result->addr, query_result->sys_stat, query_result->node_cnt, query_result->match_addrs);
 }
 
 /**
  * @brief Send a query_result message
  * @param chan MAVLink channel to send the message
  *
- * @param msg_type  message type
  * @param addr  mac address of drone
  * @param sys_stat   status of system
  * @param node_cnt   number of correct nodes
@@ -164,19 +154,17 @@ static inline uint16_t mavlink_msg_query_result_encode_chan(uint8_t system_id, u
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_query_result_send(mavlink_channel_t chan, uint8_t msg_type, const uint8_t *addr, uint8_t sys_stat, uint8_t node_cnt, const uint8_t *match_addrs)
+static inline void mavlink_msg_query_result_send(mavlink_channel_t chan, const uint8_t *addr, uint8_t sys_stat, uint8_t node_cnt, const uint8_t *match_addrs)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_query_result_LEN];
-    _mav_put_uint8_t(buf, 0, msg_type);
-    _mav_put_uint8_t(buf, 7, sys_stat);
-    _mav_put_uint8_t(buf, 8, node_cnt);
-    _mav_put_uint8_t_array(buf, 1, addr, 6);
-    _mav_put_uint8_t_array(buf, 9, match_addrs, 48);
+    _mav_put_uint8_t(buf, 6, sys_stat);
+    _mav_put_uint8_t(buf, 7, node_cnt);
+    _mav_put_uint8_t_array(buf, 0, addr, 6);
+    _mav_put_uint8_t_array(buf, 8, match_addrs, 48);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_query_result, buf, MAVLINK_MSG_ID_query_result_MIN_LEN, MAVLINK_MSG_ID_query_result_LEN, MAVLINK_MSG_ID_query_result_CRC);
 #else
     mavlink_query_result_t packet;
-    packet.msg_type = msg_type;
     packet.sys_stat = sys_stat;
     packet.node_cnt = node_cnt;
     mav_array_memcpy(packet.addr, addr, sizeof(uint8_t)*6);
@@ -193,7 +181,7 @@ static inline void mavlink_msg_query_result_send(mavlink_channel_t chan, uint8_t
 static inline void mavlink_msg_query_result_send_struct(mavlink_channel_t chan, const mavlink_query_result_t* query_result)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-    mavlink_msg_query_result_send(chan, query_result->msg_type, query_result->addr, query_result->sys_stat, query_result->node_cnt, query_result->match_addrs);
+    mavlink_msg_query_result_send(chan, query_result->addr, query_result->sys_stat, query_result->node_cnt, query_result->match_addrs);
 #else
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_query_result, (const char *)query_result, MAVLINK_MSG_ID_query_result_MIN_LEN, MAVLINK_MSG_ID_query_result_LEN, MAVLINK_MSG_ID_query_result_CRC);
 #endif
@@ -207,19 +195,17 @@ static inline void mavlink_msg_query_result_send_struct(mavlink_channel_t chan, 
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_query_result_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t msg_type, const uint8_t *addr, uint8_t sys_stat, uint8_t node_cnt, const uint8_t *match_addrs)
+static inline void mavlink_msg_query_result_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  const uint8_t *addr, uint8_t sys_stat, uint8_t node_cnt, const uint8_t *match_addrs)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char *buf = (char *)msgbuf;
-    _mav_put_uint8_t(buf, 0, msg_type);
-    _mav_put_uint8_t(buf, 7, sys_stat);
-    _mav_put_uint8_t(buf, 8, node_cnt);
-    _mav_put_uint8_t_array(buf, 1, addr, 6);
-    _mav_put_uint8_t_array(buf, 9, match_addrs, 48);
+    _mav_put_uint8_t(buf, 6, sys_stat);
+    _mav_put_uint8_t(buf, 7, node_cnt);
+    _mav_put_uint8_t_array(buf, 0, addr, 6);
+    _mav_put_uint8_t_array(buf, 8, match_addrs, 48);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_query_result, buf, MAVLINK_MSG_ID_query_result_MIN_LEN, MAVLINK_MSG_ID_query_result_LEN, MAVLINK_MSG_ID_query_result_CRC);
 #else
     mavlink_query_result_t *packet = (mavlink_query_result_t *)msgbuf;
-    packet->msg_type = msg_type;
     packet->sys_stat = sys_stat;
     packet->node_cnt = node_cnt;
     mav_array_memcpy(packet->addr, addr, sizeof(uint8_t)*6);
@@ -235,23 +221,13 @@ static inline void mavlink_msg_query_result_send_buf(mavlink_message_t *msgbuf, 
 
 
 /**
- * @brief Get field msg_type from query_result message
- *
- * @return  message type
- */
-static inline uint8_t mavlink_msg_query_result_get_msg_type(const mavlink_message_t* msg)
-{
-    return _MAV_RETURN_uint8_t(msg,  0);
-}
-
-/**
  * @brief Get field addr from query_result message
  *
  * @return  mac address of drone
  */
 static inline uint16_t mavlink_msg_query_result_get_addr(const mavlink_message_t* msg, uint8_t *addr)
 {
-    return _MAV_RETURN_uint8_t_array(msg, addr, 6,  1);
+    return _MAV_RETURN_uint8_t_array(msg, addr, 6,  0);
 }
 
 /**
@@ -261,7 +237,7 @@ static inline uint16_t mavlink_msg_query_result_get_addr(const mavlink_message_t
  */
 static inline uint8_t mavlink_msg_query_result_get_sys_stat(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_uint8_t(msg,  7);
+    return _MAV_RETURN_uint8_t(msg,  6);
 }
 
 /**
@@ -271,7 +247,7 @@ static inline uint8_t mavlink_msg_query_result_get_sys_stat(const mavlink_messag
  */
 static inline uint8_t mavlink_msg_query_result_get_node_cnt(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_uint8_t(msg,  8);
+    return _MAV_RETURN_uint8_t(msg,  7);
 }
 
 /**
@@ -281,7 +257,7 @@ static inline uint8_t mavlink_msg_query_result_get_node_cnt(const mavlink_messag
  */
 static inline uint16_t mavlink_msg_query_result_get_match_addrs(const mavlink_message_t* msg, uint8_t *match_addrs)
 {
-    return _MAV_RETURN_uint8_t_array(msg, match_addrs, 48,  9);
+    return _MAV_RETURN_uint8_t_array(msg, match_addrs, 48,  8);
 }
 
 /**
@@ -293,7 +269,6 @@ static inline uint16_t mavlink_msg_query_result_get_match_addrs(const mavlink_me
 static inline void mavlink_msg_query_result_decode(const mavlink_message_t* msg, mavlink_query_result_t* query_result)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-    query_result->msg_type = mavlink_msg_query_result_get_msg_type(msg);
     mavlink_msg_query_result_get_addr(msg, query_result->addr);
     query_result->sys_stat = mavlink_msg_query_result_get_sys_stat(msg);
     query_result->node_cnt = mavlink_msg_query_result_get_node_cnt(msg);

@@ -5,19 +5,18 @@
 
 MAVPACKED(
 typedef struct __mavlink_command_t {
- uint8_t msg_type; /*<  message type*/
  uint8_t addr[6]; /*<  mac address of drone*/
  uint8_t sys_stat; /*<   status of system*/
  uint8_t command; /*<   command from server*/
 }) mavlink_command_t;
 
-#define MAVLINK_MSG_ID_command_LEN 9
-#define MAVLINK_MSG_ID_command_MIN_LEN 9
-#define MAVLINK_MSG_ID_4_LEN 9
-#define MAVLINK_MSG_ID_4_MIN_LEN 9
+#define MAVLINK_MSG_ID_command_LEN 8
+#define MAVLINK_MSG_ID_command_MIN_LEN 8
+#define MAVLINK_MSG_ID_4_LEN 8
+#define MAVLINK_MSG_ID_4_MIN_LEN 8
 
-#define MAVLINK_MSG_ID_command_CRC 24
-#define MAVLINK_MSG_ID_4_CRC 24
+#define MAVLINK_MSG_ID_command_CRC 192
+#define MAVLINK_MSG_ID_4_CRC 192
 
 #define MAVLINK_MSG_command_FIELD_ADDR_LEN 6
 
@@ -25,21 +24,19 @@ typedef struct __mavlink_command_t {
 #define MAVLINK_MESSAGE_INFO_command { \
     4, \
     "command", \
-    4, \
-    {  { "msg_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 0, offsetof(mavlink_command_t, msg_type) }, \
-         { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 1, offsetof(mavlink_command_t, addr) }, \
-         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_command_t, sys_stat) }, \
-         { "command", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_command_t, command) }, \
+    3, \
+    {  { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 0, offsetof(mavlink_command_t, addr) }, \
+         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_command_t, sys_stat) }, \
+         { "command", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_command_t, command) }, \
          } \
 }
 #else
 #define MAVLINK_MESSAGE_INFO_command { \
     "command", \
-    4, \
-    {  { "msg_type", NULL, MAVLINK_TYPE_UINT8_T, 0, 0, offsetof(mavlink_command_t, msg_type) }, \
-         { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 1, offsetof(mavlink_command_t, addr) }, \
-         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_command_t, sys_stat) }, \
-         { "command", NULL, MAVLINK_TYPE_UINT8_T, 0, 8, offsetof(mavlink_command_t, command) }, \
+    3, \
+    {  { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 0, offsetof(mavlink_command_t, addr) }, \
+         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_command_t, sys_stat) }, \
+         { "command", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_command_t, command) }, \
          } \
 }
 #endif
@@ -50,25 +47,22 @@ typedef struct __mavlink_command_t {
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param msg_type  message type
  * @param addr  mac address of drone
  * @param sys_stat   status of system
  * @param command   command from server
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_command_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-                               uint8_t msg_type, const uint8_t *addr, uint8_t sys_stat, uint8_t command)
+                               const uint8_t *addr, uint8_t sys_stat, uint8_t command)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_command_LEN];
-    _mav_put_uint8_t(buf, 0, msg_type);
-    _mav_put_uint8_t(buf, 7, sys_stat);
-    _mav_put_uint8_t(buf, 8, command);
-    _mav_put_uint8_t_array(buf, 1, addr, 6);
+    _mav_put_uint8_t(buf, 6, sys_stat);
+    _mav_put_uint8_t(buf, 7, command);
+    _mav_put_uint8_t_array(buf, 0, addr, 6);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_command_LEN);
 #else
     mavlink_command_t packet;
-    packet.msg_type = msg_type;
     packet.sys_stat = sys_stat;
     packet.command = command;
     mav_array_memcpy(packet.addr, addr, sizeof(uint8_t)*6);
@@ -85,7 +79,6 @@ static inline uint16_t mavlink_msg_command_pack(uint8_t system_id, uint8_t compo
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message will be sent over
  * @param msg The MAVLink message to compress the data into
- * @param msg_type  message type
  * @param addr  mac address of drone
  * @param sys_stat   status of system
  * @param command   command from server
@@ -93,18 +86,16 @@ static inline uint16_t mavlink_msg_command_pack(uint8_t system_id, uint8_t compo
  */
 static inline uint16_t mavlink_msg_command_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
                                mavlink_message_t* msg,
-                                   uint8_t msg_type,const uint8_t *addr,uint8_t sys_stat,uint8_t command)
+                                   const uint8_t *addr,uint8_t sys_stat,uint8_t command)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_command_LEN];
-    _mav_put_uint8_t(buf, 0, msg_type);
-    _mav_put_uint8_t(buf, 7, sys_stat);
-    _mav_put_uint8_t(buf, 8, command);
-    _mav_put_uint8_t_array(buf, 1, addr, 6);
+    _mav_put_uint8_t(buf, 6, sys_stat);
+    _mav_put_uint8_t(buf, 7, command);
+    _mav_put_uint8_t_array(buf, 0, addr, 6);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_command_LEN);
 #else
     mavlink_command_t packet;
-    packet.msg_type = msg_type;
     packet.sys_stat = sys_stat;
     packet.command = command;
     mav_array_memcpy(packet.addr, addr, sizeof(uint8_t)*6);
@@ -125,7 +116,7 @@ static inline uint16_t mavlink_msg_command_pack_chan(uint8_t system_id, uint8_t 
  */
 static inline uint16_t mavlink_msg_command_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_command_t* command)
 {
-    return mavlink_msg_command_pack(system_id, component_id, msg, command->msg_type, command->addr, command->sys_stat, command->command);
+    return mavlink_msg_command_pack(system_id, component_id, msg, command->addr, command->sys_stat, command->command);
 }
 
 /**
@@ -139,32 +130,29 @@ static inline uint16_t mavlink_msg_command_encode(uint8_t system_id, uint8_t com
  */
 static inline uint16_t mavlink_msg_command_encode_chan(uint8_t system_id, uint8_t component_id, uint8_t chan, mavlink_message_t* msg, const mavlink_command_t* command)
 {
-    return mavlink_msg_command_pack_chan(system_id, component_id, chan, msg, command->msg_type, command->addr, command->sys_stat, command->command);
+    return mavlink_msg_command_pack_chan(system_id, component_id, chan, msg, command->addr, command->sys_stat, command->command);
 }
 
 /**
  * @brief Send a command message
  * @param chan MAVLink channel to send the message
  *
- * @param msg_type  message type
  * @param addr  mac address of drone
  * @param sys_stat   status of system
  * @param command   command from server
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_command_send(mavlink_channel_t chan, uint8_t msg_type, const uint8_t *addr, uint8_t sys_stat, uint8_t command)
+static inline void mavlink_msg_command_send(mavlink_channel_t chan, const uint8_t *addr, uint8_t sys_stat, uint8_t command)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_command_LEN];
-    _mav_put_uint8_t(buf, 0, msg_type);
-    _mav_put_uint8_t(buf, 7, sys_stat);
-    _mav_put_uint8_t(buf, 8, command);
-    _mav_put_uint8_t_array(buf, 1, addr, 6);
+    _mav_put_uint8_t(buf, 6, sys_stat);
+    _mav_put_uint8_t(buf, 7, command);
+    _mav_put_uint8_t_array(buf, 0, addr, 6);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_command, buf, MAVLINK_MSG_ID_command_MIN_LEN, MAVLINK_MSG_ID_command_LEN, MAVLINK_MSG_ID_command_CRC);
 #else
     mavlink_command_t packet;
-    packet.msg_type = msg_type;
     packet.sys_stat = sys_stat;
     packet.command = command;
     mav_array_memcpy(packet.addr, addr, sizeof(uint8_t)*6);
@@ -180,7 +168,7 @@ static inline void mavlink_msg_command_send(mavlink_channel_t chan, uint8_t msg_
 static inline void mavlink_msg_command_send_struct(mavlink_channel_t chan, const mavlink_command_t* command)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-    mavlink_msg_command_send(chan, command->msg_type, command->addr, command->sys_stat, command->command);
+    mavlink_msg_command_send(chan, command->addr, command->sys_stat, command->command);
 #else
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_command, (const char *)command, MAVLINK_MSG_ID_command_MIN_LEN, MAVLINK_MSG_ID_command_LEN, MAVLINK_MSG_ID_command_CRC);
 #endif
@@ -194,18 +182,16 @@ static inline void mavlink_msg_command_send_struct(mavlink_channel_t chan, const
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_command_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint8_t msg_type, const uint8_t *addr, uint8_t sys_stat, uint8_t command)
+static inline void mavlink_msg_command_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  const uint8_t *addr, uint8_t sys_stat, uint8_t command)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char *buf = (char *)msgbuf;
-    _mav_put_uint8_t(buf, 0, msg_type);
-    _mav_put_uint8_t(buf, 7, sys_stat);
-    _mav_put_uint8_t(buf, 8, command);
-    _mav_put_uint8_t_array(buf, 1, addr, 6);
+    _mav_put_uint8_t(buf, 6, sys_stat);
+    _mav_put_uint8_t(buf, 7, command);
+    _mav_put_uint8_t_array(buf, 0, addr, 6);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_command, buf, MAVLINK_MSG_ID_command_MIN_LEN, MAVLINK_MSG_ID_command_LEN, MAVLINK_MSG_ID_command_CRC);
 #else
     mavlink_command_t *packet = (mavlink_command_t *)msgbuf;
-    packet->msg_type = msg_type;
     packet->sys_stat = sys_stat;
     packet->command = command;
     mav_array_memcpy(packet->addr, addr, sizeof(uint8_t)*6);
@@ -220,23 +206,13 @@ static inline void mavlink_msg_command_send_buf(mavlink_message_t *msgbuf, mavli
 
 
 /**
- * @brief Get field msg_type from command message
- *
- * @return  message type
- */
-static inline uint8_t mavlink_msg_command_get_msg_type(const mavlink_message_t* msg)
-{
-    return _MAV_RETURN_uint8_t(msg,  0);
-}
-
-/**
  * @brief Get field addr from command message
  *
  * @return  mac address of drone
  */
 static inline uint16_t mavlink_msg_command_get_addr(const mavlink_message_t* msg, uint8_t *addr)
 {
-    return _MAV_RETURN_uint8_t_array(msg, addr, 6,  1);
+    return _MAV_RETURN_uint8_t_array(msg, addr, 6,  0);
 }
 
 /**
@@ -246,7 +222,7 @@ static inline uint16_t mavlink_msg_command_get_addr(const mavlink_message_t* msg
  */
 static inline uint8_t mavlink_msg_command_get_sys_stat(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_uint8_t(msg,  7);
+    return _MAV_RETURN_uint8_t(msg,  6);
 }
 
 /**
@@ -256,7 +232,7 @@ static inline uint8_t mavlink_msg_command_get_sys_stat(const mavlink_message_t* 
  */
 static inline uint8_t mavlink_msg_command_get_command(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_uint8_t(msg,  8);
+    return _MAV_RETURN_uint8_t(msg,  7);
 }
 
 /**
@@ -268,7 +244,6 @@ static inline uint8_t mavlink_msg_command_get_command(const mavlink_message_t* m
 static inline void mavlink_msg_command_decode(const mavlink_message_t* msg, mavlink_command_t* command)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
-    command->msg_type = mavlink_msg_command_get_msg_type(msg);
     mavlink_msg_command_get_addr(msg, command->addr);
     command->sys_stat = mavlink_msg_command_get_sys_stat(msg);
     command->command = mavlink_msg_command_get_command(msg);
