@@ -14,6 +14,7 @@ struct node_list
 };
 
 inline void node_list_init (struct node_list* target);
+inline struct node_basic* node_get_elem (struct list_elem* e);
 
 struct node_basic* node_create (bdaddr_t addr, uint8_t status);
 

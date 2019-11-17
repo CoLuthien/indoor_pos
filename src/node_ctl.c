@@ -6,7 +6,10 @@
 
 #include "node_ctl.h"
 
-
+inline struct node_basic* node_get_elem (struct list_elem* e)
+{
+    return list_entry (e, struct node_basic, elem);
+}
 inline void node_list_init (struct node_list* target)
 {
     list_init(&target->head);
