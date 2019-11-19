@@ -32,7 +32,7 @@ struct node_info
     int8_t rssi;
     float real_x, real_y;
     float dist;
-    float est_x, est_y
+    float est_x, est_y;
 };
 
 #endif

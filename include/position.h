@@ -1,6 +1,7 @@
 #include "node_ctl.h"
 #include "ble.h"
 #include "comm.h"
+#include "packet.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -15,11 +16,11 @@ struct position_t
     struct node_list ready_list, active_list;
     uint8_t status;
     
-    bool pos_valid;
+    bool pos_valid ;
     float cur_x, cur_y;
 };
 
-struct position_t* pos_init ();
+struct position_t* pos_init (struct ble_t* ble, struct comm_t* com);
 
 void pos_scan_perimeter (struct position_t* self, int timeout);
 int pos_process_packet (struct position_t* self, int timeout);

@@ -10,6 +10,4 @@ enum sys_stat
     FAIL_SAFE
 };
 
-enum 
-
 #endif
