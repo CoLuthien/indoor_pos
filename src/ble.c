@@ -4,7 +4,33 @@
 #include <stdio.h>
 #include <unistd.h>
 
-static int ble_cancel_connect (struct ble_t* self); 
+
+static int ble_set_event_mask (int fd);
+static void ble_request_form(struct hci_request* form, uint16_t ocf, int clen, void* status, void* cparams);
+
+static void ble_request_form(struct hci_request* form, uint16_t ocf, int clen, void* status, void* cparams)
+{
+    memset(form, 0, sizeof(struct hci_request));
+    form->ogf = OGF_LE_CTL;
+    form->ocf = ocf;
+    form->cparam = cparams;
+    form->clen = clen;
+    form->rparam = status;
+    form->rlen = 1;
+}
+
+void ble_destroy (struct ble_t* ble)
+{
+    if (ble->scan)
+    {
+        ble_disable_scan (ble);
+    }
+    hci_close_dev(ble->device);
+    free (ble);
+    ble = NULL;
+}
+
+static int ble_cancel_connect (struct ble_t* self, int timeout); 
 struct ble_t* ble_init()
 {
     int dev = hci_open_dev(hci_get_route(NULL));
@@ -22,9 +48,12 @@ struct ble_t* ble_init()
     self->pfd.fd = dev;
     self->pfd.events = POLLIN;
 
+    printf("ble init success %s is bdaddr\n", batostr(&self->my_addr));
+
     return self;
 
     fail:
+        printf("ble init fail!\n");
         ble_destroy(self);
         return NULL;
 }
@@ -63,7 +92,7 @@ static int ble_parse_scan_result(uint8_t* buf, size_t len, bdaddr_t* dest)// tem
     return -1;
 }
 
-int ble_start_scan(struct ble_t* self)
+int ble_enable_scan(struct ble_t* self)
 {
     /* 
     ToDo:
@@ -129,6 +158,10 @@ inline int ble_stop_scan(struct ble_t* self)
 // error -1, no response 0, success > 0
 int ble_get_scan_result (struct ble_t* self, bdaddr_t* dest, int timeout)
 {
+    if (!self->scan)
+    {
+        return -1;
+    }
     uint8_t buf[HCI_MAX_EVENT_SIZE];
     short int old_evt = self->pfd.events;
     int ret = 0, len = 0;
@@ -182,7 +215,12 @@ int ble_try_connect (struct ble_t* self, bdaddr_t addr, uint16_t* dst, int timeo
     return 0;
 }
 
-int ble_read_rssi (struct ble_t* self, uint16_t handle, int8_t* dest, int timeout)
+int ble_read_rssi (struct ble_t* self, uint16_t device_handle, int8_t* dest, int timeout)
 {
-    return hci_read_rssi (self->device, handle, &dest, timeout);
+    return hci_read_rssi (self->device, device_handle, dest, timeout);
+}
+
+int ble_disable_scan (struct ble_t* self)
+{
+    return 0;
 }

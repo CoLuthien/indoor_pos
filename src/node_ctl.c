@@ -6,11 +6,11 @@
 
 #include "node_ctl.h"
 
-inline struct node_basic* node_get_elem (struct list_elem* e)
+struct node_basic* node_get_elem (struct list_elem* e)
 {
     return list_entry (e, struct node_basic, elem);
 }
-inline void node_list_init (struct node_list* target)
+void node_list_init (struct node_list* target)
 {
     list_init(&target->head);
     target->len = 0;
@@ -48,7 +48,7 @@ void node_demote (struct node_basic* target)
 
 void node_insert (struct node_list* target_list, struct node_basic* target)
 {
-    target_list->len += 1;
+    target_list->len = target_list->len + 1;
     list_push_back (&target_list->head, &target->elem);
 }
 
@@ -66,17 +66,18 @@ struct node_basic* node_find (bdaddr_t addr, struct node_list* target_list)
     }
     struct node_basic* cur = NULL;
     struct list* list = &target_list->head;
-    struct list_elem* end = list_end (list);
+    struct list_elem* end = list_back (list);
     for (struct list_elem* e = list_front (list);
          e != end;
          e = list_next(e))
     {
+
         cur = list_entry (e, struct node_basic, elem);
         if (bacmp(&addr, &cur->addr) == 0)
         {
             break;
         }
-
+        cur = NULL;
     }
     return cur;
 }

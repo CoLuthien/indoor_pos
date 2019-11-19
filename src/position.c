@@ -1,3 +1,4 @@
+#include "node_ctl.h"
 #include "position.h"
 #include "mavlink.h"
 #include <stdio.h>
@@ -7,15 +8,36 @@
 #define MAX_PKT_LEN 8
 
 static struct node_list unknown_nodes;
-
+static struct node_list query_nodes;
 static int pos_process_query_result (struct position_t* self, mavlink_message_t* msg);
 static int pos_do_query (struct position_t* self);
 static void pos_query_to_server (struct position_t* self, bdaddr_t addr);
 
-
-struct position_t* pos_init ()
+struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
 {
+    if (NULL == ble || NULL == com)
+    {
+        printf("%d %d", ble, com);
+        goto fail;
+    }
+    struct position_t* self = malloc (sizeof (struct position_t));
+
+    self->ble = ble; 
+    self->com = com;
+    node_list_init (&self->ready_list);
+    node_list_init (&self->active_list);
     node_list_init (&unknown_nodes);
+    node_list_init (&query_nodes);
+
+    self->status = INIT;
+    self->pos_valid = false;
+    self->cur_x = self->cur_y = 200.0f;
+
+    return self;
+
+    fail:
+        printf("init position failed!!\n");
+        return NULL;
 }
 
 void pos_scan_perimeter (struct position_t* self, int timeout)
@@ -36,7 +58,7 @@ static void pos_query_to_server (struct position_t* self, bdaddr_t addr)
         node = node_create (addr, FOUND);
         node_insert (&unknown_nodes, node);
     }
-    if (unknown_nodes.len >= 8 || 0) // if query criteria mets, query to server
+    if (unknown_nodes.len >= 8) // if query criteria mets, query to server
     {
         pos_do_query (self);
     }
@@ -47,19 +69,24 @@ static int pos_do_query (struct position_t* self)
     uint8_t buf[48];// sizeof (struct target_pkt)
     uint8_t msg_buf[MAVLINK_MAX_PACKET_LEN];
     struct list* list = &unknown_nodes.head;
-    struct list_elem* end = list_end(&unknown_nodes.head);
+    struct list_elem* end = list_back (&unknown_nodes.head);
     struct node_basic* cur = NULL;
     int cnt = 0;
-    for (struct list_elem* e = list_front(list);
+    for (struct list_elem* e = list_front (list);
          e != end;
-         e = list_next(e))
+         )
     {
         if (cnt > 7)
             break;
         cur = node_get_elem (e);
         bacpy (buf + cnt * 6, &cur->addr);
         cnt++;
+        e = list_next(e);
+
+        node_remove_frm_list (list, cur);
+        node_insert (&query_nodes, cur);
     }
+
     mavlink_message_t msg;
     mavlink_msg_query_pack (0, 0, 
         &msg, &self->ble->my_addr, 
