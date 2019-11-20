@@ -17,7 +17,6 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
 {
     if (NULL == ble || NULL == com)
     {
-        printf("%d %d", ble, com);
         goto fail;
     }
     struct position_t* self = malloc (sizeof (struct position_t));
@@ -42,7 +41,7 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
 
 void pos_scan_perimeter (struct position_t* self, int timeout)
 {
-    bdaddr_t addr_found;
+    bdaddr_t addr_found = {0x00, };
     
     if (ble_get_scan_result (self->ble, &addr_found, timeout) > 0)
     {
@@ -53,6 +52,7 @@ void pos_scan_perimeter (struct position_t* self, int timeout)
 static void pos_query_to_server (struct position_t* self, bdaddr_t addr)
 {
     struct node_basic* node = node_find (addr, &unknown_nodes);
+
     if (NULL == node)
     {
         node = node_create (addr, FOUND);
@@ -107,7 +107,7 @@ int pos_process_packet (struct position_t* self, int timeout)
         return -2;// nothing to do.. for now..
     else if (len == 0)
         return -1; // nothing arrived yet
-
+    
     for (int i = 0; i < len; i++)
     {
         if (mavlink_parse_char(MAVLINK_COMM_0, msg_buf[i], &msg, &stat))
@@ -136,7 +136,7 @@ int pos_estimate_position (struct position_t* self, int timeout)
 {
     struct list* cand_list = &self->active_list.head;
     struct list_elem* e = NULL;
-    struct list_elem* end = list_end (cand_list);
+    struct list_elem* end = list_back (cand_list);
     struct node_basic* cur = NULL;
     struct node_info* info = NULL;
 
@@ -166,9 +166,6 @@ int pos_estimate_position (struct position_t* self, int timeout)
             continue;
         }
     }
-
-
-
 
     self->cur_x = est_x;
     self->cur_y = est_y;

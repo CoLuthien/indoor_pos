@@ -20,3 +20,5 @@ void comm_destroy(struct comm_t* com);
 int comm_write(struct comm_t* self, uint8_t* buf, size_t len);
 int comm_read(struct comm_t* self, uint8_t* buf, size_t buf_size, time_t timeout);
 
+
+

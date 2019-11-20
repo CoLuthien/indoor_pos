@@ -10,4 +10,9 @@ enum sys_stat
     FAIL_SAFE
 };
 
+enum command
+{
+    STAT_REPORT = 0
+};
+
 #endif
