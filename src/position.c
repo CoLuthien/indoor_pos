@@ -8,7 +8,8 @@
 #define MAX_PKT_LEN 8
 
 static struct node_list unknown_nodes;
-static struct node_list query_nodes;
+static struct node_list queried_nodes;
+
 static int pos_process_query_result (struct position_t* self, mavlink_message_t* msg);
 static int pos_do_query (struct position_t* self);
 static void pos_query_to_server (struct position_t* self, bdaddr_t addr);
@@ -23,10 +24,11 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
 
     self->ble = ble; 
     self->com = com;
+
     node_list_init (&self->ready_list);
     node_list_init (&self->active_list);
     node_list_init (&unknown_nodes);
-    node_list_init (&query_nodes);
+    node_list_init (&queried_nodes);
 
     self->status = INIT;
     self->pos_valid = false;
@@ -45,6 +47,7 @@ void pos_scan_perimeter (struct position_t* self, int timeout)
     
     if (ble_get_scan_result (self->ble, &addr_found, timeout) > 0)
     {
+        // ok we have scan result
         pos_query_to_server (self, addr_found);
     }
 }
@@ -84,7 +87,7 @@ static int pos_do_query (struct position_t* self)
         e = list_next(e);
 
         node_remove_frm_list (list, cur);
-        node_insert (&query_nodes, cur);
+        node_insert (&queried_nodes, cur);
     }
 
     mavlink_message_t msg;
