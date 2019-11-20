@@ -101,7 +101,7 @@ int ble_enable_scan(struct ble_t* self)
     int status = 0, ret = 0;
     int fd = self->device;
 
-    ret = hci_le_set_scan_parameters(fd, 0x01, 0x00a0, 0x00a0, 0x00, 0x00, 1000);
+    ret = hci_le_set_scan_parameters(fd, 0x00, 0x00a0, 0x00a0, 0x00, 0x00, 1000);
 
     if (ret != 0)
     {
