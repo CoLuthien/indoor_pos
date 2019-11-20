@@ -144,9 +144,9 @@ int ble_enable_scan(struct ble_t* self)
         self->scan = false;
         return -1;
 }
-inline int ble_stop_scan(struct ble_t* self)
+
+inline int ble_disable_scan (struct ble_t* self)
 {
-    
     if (hci_le_set_scan_enable(self->device, 0x00, 0x00, 1000) > 0)
     {
         self->scan = false;
@@ -154,7 +154,6 @@ inline int ble_stop_scan(struct ble_t* self)
     }
     return -1;
 }
-
 // error -1, no response 0, success > 0
 int ble_get_scan_result (struct ble_t* self, bdaddr_t* dest, int timeout)
 {
@@ -220,7 +219,3 @@ int ble_read_rssi (struct ble_t* self, uint16_t device_handle, int8_t* dest, int
     return hci_read_rssi (self->device, device_handle, dest, timeout);
 }
 
-int ble_disable_scan (struct ble_t* self)
-{
-    return 0;
-}
