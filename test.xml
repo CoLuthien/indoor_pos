@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<mavlink>
+  <version>3</version>
+  <messages>
+    <message id="0" name="heartbeat">
+      <description>heartbeat packet</description>
+	  <field type="uint8_t[6]" name="addr">mac address of drone</field>
+	  <field type="uint8_t" name="sys_stat"> status of system</field>
+	  <field type="uint8_t" name="err_code"> error code, in case of server error</field>
+	</message>
+	<message id="1" name="stat_report">
+		<description>report current status to server </description>
+	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
+	    <field type="uint8_t" name="sys_stat"> status of system</field>
+		<field type="uint8_t" name="node_cnt"> number of active ble nodes</field>
+		<field type="float[2]" name="position"> current position, estimated</field>
+	</message>
+	<message id="2" name="query">
+		<description>query the found node is in DB</description>
+	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
+	    <field type="uint8_t" name="sys_stat"> status of system</field>
+		<field type="uint8_t" name="node_cnt"> number of querying nodes</field>
+		<field type="uint8_t[48]" name="found_addrs"> addr of found nodes</field>
+	</message>
+	<message id="3" name="query_result">
+		<description>result of query </description>
+	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
+	    <field type="uint8_t" name="sys_stat"> status of system</field>
+		<field type="uint8_t[6]" name="match_addr"> matched node's addr</field>
+		<field type="float" name="x"> x position </field>
+		<field type="float" name="y"> y position </field>
+	</message>
+	<message id="4" name="command">
+		<description> command packet from server</description>
+	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
+	    <field type="uint8_t" name="sys_stat"> status of system</field>
+		<field type="uint8_t" name="command"> command from server</field>
+	</message>
+
+  </messages>
+</mavlink>
