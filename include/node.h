@@ -15,7 +15,8 @@ enum node_status
     READY, // DB confirm to use
     ACTIVE,// wait on connecting queue
     CONNECTED,
-    ERROR
+    ERROR,
+    FILTER_USE
 };
 
 struct node_basic

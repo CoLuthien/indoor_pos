@@ -24,5 +24,4 @@ struct position_t
 struct position_t* pos_init (struct ble_t* ble, struct comm_t* com);
 
 void pos_scan_perimeter (struct position_t* self, int timeout);
-int pos_process_packet (struct position_t* self, int timeout);
 int pos_estimate_position (struct position_t* self, int timeout);

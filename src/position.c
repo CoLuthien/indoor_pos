@@ -4,15 +4,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
+#define QUERY_THRESHOLD 8
 #define MAX_PKT_LEN 8
 
 static struct node_list unknown_nodes;
 static struct node_list queried_nodes;
+static struct node_list dup_filter;//duplication filter purpose
 
 static int pos_process_query_result (struct position_t* self, mavlink_message_t* msg);
-static int pos_do_query (struct position_t* self);
-static void pos_query_to_server (struct position_t* self, bdaddr_t addr);
+
+static void pos_process_scan_result (struct position_t* self, bdaddr_t addr);
 
 struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
 {
@@ -29,6 +30,7 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
     node_list_init (&self->active_list);
     node_list_init (&unknown_nodes);
     node_list_init (&queried_nodes);
+    node_list_init (&dup_filter);
 
     self->status = INIT;
     self->pos_valid = false;
@@ -41,99 +43,34 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
         return NULL;
 }
 
+static void pos_process_scan_result (struct position_t* self, bdaddr_t addr)
+{
+    // we need to filter out duplicates
+    struct node_basic* node = node_find (addr, &dup_filter);
+    if (node == NULL)
+    {// very first found
+        node = node_create (addr, FILTER_USE);
+        node_insert (&dup_filter, node);
+        
+        node = NULL;// it is in list. we don't care
+
+        node = node_create (addr, FOUND);
+        node_insert (&unknown_nodes, node);
+    }
+}
+
 void pos_scan_perimeter (struct position_t* self, int timeout)
 {
     bdaddr_t addr_found = {0x00, };
     
-    if (ble_get_scan_result (self->ble, &addr_found, timeout) > 0)
+    if (ble_get_scan_result (self->ble, &addr_found, timeout) < 0)
     {
-        // ok we have scan result
-        pos_query_to_server (self, addr_found);
+        return;
     }
+    //ok something outside.
+    pos_process_scan_result (self, addr_found);
 }
 
-static void pos_query_to_server (struct position_t* self, bdaddr_t addr)
-{
-    struct node_basic* node = node_find (addr, &unknown_nodes);
-
-    if (NULL == node)
-    {
-        node = node_create (addr, FOUND);
-        node_insert (&unknown_nodes, node);
-    }
-    if (unknown_nodes.len >= 8) // if query criteria mets, query to server
-    {
-        pos_do_query (self);
-    }
-}
-
-static int pos_do_query (struct position_t* self)
-{
-    uint8_t buf[48];// sizeof (struct target_pkt)
-    uint8_t msg_buf[MAVLINK_MAX_PACKET_LEN];
-    struct list* list = &unknown_nodes.head;
-    struct list_elem* end = list_back (&unknown_nodes.head);
-    struct node_basic* cur = NULL;
-    int cnt = 0;
-    for (struct list_elem* e = list_front (list);
-         e != end;
-         )
-    {
-        if (cnt > 7)
-            break;
-        cur = node_get_elem (e);
-        bacpy (buf + cnt * 6, &cur->addr);
-        cnt++;
-        e = list_next(e);
-
-        node_remove_frm_list (list, cur);
-        node_insert (&queried_nodes, cur);
-    }
-
-    mavlink_message_t msg;
-    mavlink_msg_query_pack (0, 0, 
-        &msg, &self->ble->my_addr, 
-        self->status, cnt, buf);
-    int len = mavlink_msg_to_send_buffer(msg_buf, &msg);
-    return comm_write (self->com, msg_buf, len);
-}
-
-int pos_process_packet (struct position_t* self, int timeout)
-{
-    struct comm_t* com = self->com;
-    uint8_t msg_buf[MAVLINK_MAX_PACKET_LEN] = {0,};
-    mavlink_message_t msg;
-    mavlink_status_t stat;
-
-    int len = comm_read(com, msg_buf, MAVLINK_MAX_PACKET_LEN, timeout);
-    if (len < 0)
-        return -2;// nothing to do.. for now..
-    else if (len == 0)
-        return -1; // nothing arrived yet
-    
-    for (int i = 0; i < len; i++)
-    {
-        if (mavlink_parse_char(MAVLINK_COMM_0, msg_buf[i], &msg, &stat))
-        {
-            switch (msg.msgid)
-            {
-            case MAVLINK_MSG_ID_heartbeat:
-                break;
-            case MAVLINK_MSG_ID_query:
-                break;// will not sent by server
-            case MAVLINK_MSG_ID_query_result:
-
-                pos_process_query_result(self, &msg);                            
-                break;
-            case MAVLINK_MSG_ID_command:
-                break;
-            default:
-                break;
-            }
-        }
-    }
-
-}
 
 int pos_estimate_position (struct position_t* self, int timeout)
 {
