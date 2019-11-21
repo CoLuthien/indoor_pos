@@ -25,8 +25,8 @@
 	<message id="3" name="query_result">
 		<description>result of query </description>
 	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
-	    <field type="uint8_t" name="sys_stat"> status of system</field>
 		<field type="uint8_t[6]" name="match_addr"> matched node's addr</field>
+		<field type="uint8_t" name="is_usable"> is this node_usable? </field>
 		<field type="float" name="x"> x position </field>
 		<field type="float" name="y"> y position </field>
 	</message>

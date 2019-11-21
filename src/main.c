@@ -35,7 +35,7 @@ int main()
 
     while (1)
     {
-
+        pos_scan_perimeter (pos, 10);
     }
 
     return 0;

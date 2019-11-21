@@ -1,6 +1,19 @@
 #include "comm.h"
 
+
+struct msg_elem
+{
+    struct list_elem elem;
+    uint8_t buf [MAVLINK_MAX_PACKET_LEN];
+    size_t len;
+};
+
+
 static int init_connection(struct comm_t* com, const char* server_addr, const char* server_port);
+
+static struct msg_elem* request_elem(struct comm_t* self);
+static void return_elem (struct comm_t* self, struct msg_elem* msg);
+static void free_elem (struct comm_t* self);
 
 static inline int init_socket(struct comm_t* com, const char* i_addr, const char* port)
 {
@@ -32,14 +45,14 @@ static int init_connection(struct comm_t* com, const char* server_addr, const ch
 
 struct comm_t* comm_init(const char* server_addr, const char* server_port)
 {
-    struct comm_t* com = malloc(sizeof(struct comm_t));
-
-    if(init_connection(com, server_addr, server_port) < 0)
+    struct comm_t* self = malloc(sizeof(struct comm_t));
+    if(init_connection(self, server_addr, server_port) < 0)
     {
-        comm_destroy(com);
+        comm_destroy(self);
     }
+    list_init (&self->elem_buffer);
 
-    return com;
+    return self;
 }
 
 void comm_destroy(struct comm_t* com)
@@ -73,6 +86,36 @@ int comm_read(struct comm_t* self, uint8_t* buf, size_t buf_size, time_t timeout
     }
 
     return poll_ret;
+}
+
+static struct msg_elem* request_elem (struct comm_t* self)
+{
+    struct msg_elem* msg = NULL;
+    if (list_empty (&self->elem_buffer))
+    {
+        msg = malloc (sizeof (struct msg_elem));
+        msg->len = 0;
+        return msg;
+    }
+    return list_entry (list_pop_front(&self->elem_buffer), struct msg_elem, elem);
+}
+
+static void return_elem (struct comm_t* self, struct msg_elem* msg)
+{
+    memset (msg->buf, 0x00, MAVLINK_MAX_PACKET_LEN);
+    msg->len = 0;
+    list_push_front (&self->elem_buffer, &msg->elem);    
+}
+
+
+int comm_append_write (struct comm_t* self, uint8_t* buf, size_t len)
+{
+    struct msg_elem* msg = request_elem (self);
+    memcpy (&msg->buf, buf, len);
+    msg->len = len;
+
+    list_push_back (&self->write_queue, &msg->elem);    
+    return 0;
 }
 
 
