@@ -1,13 +1,17 @@
 #include "ble.h"
+#include "list.h"
+#include "ble_filter.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 
 
+
+static struct list check_list;
 static int ble_set_event_mask (int fd);
 static void ble_request_form(struct hci_request* form, uint16_t ocf, int clen, void* status, void* cparams);
-
+static int ble_cancel_connect (struct ble_t* self, int timeout); \
 static void ble_request_form(struct hci_request* form, uint16_t ocf, int clen, void* status, void* cparams)
 {
     memset(form, 0, sizeof(struct hci_request));
@@ -30,7 +34,6 @@ void ble_destroy (struct ble_t* ble)
     ble = NULL;
 }
 
-static int ble_cancel_connect (struct ble_t* self, int timeout); 
 struct ble_t* ble_init()
 {
     int dev = hci_open_dev(hci_get_route(NULL));
@@ -49,6 +52,7 @@ struct ble_t* ble_init()
     self->pfd.events = POLLIN;
 
     printf("ble init success %s is bdaddr\n", batostr(&self->my_addr));
+    list_init (&check_list);
 
     return self;
 
@@ -73,7 +77,13 @@ static int ble_set_event_mask(int fd)
     return hci_send_req(fd, &event_mask_rq, 1000);
 }
 
-static int ble_parse_scan_result(uint8_t* buf, size_t len, bdaddr_t* dest)// temporary implemetation
+
+/*
+    parse le_meta_evt, specifically EVT_LE_ADVERTISING REPORT
+    return 0 when packet exist,
+           -1 when packet is not the type
+*/
+static inline int ble_parse_scan_result(uint8_t* buf, size_t len, bdaddr_t* dest)// temporary implemetation
 {
     evt_le_meta_event* meta_event;
 	le_advertising_info* info;
@@ -87,8 +97,6 @@ static int ble_parse_scan_result(uint8_t* buf, size_t len, bdaddr_t* dest)// tem
         bacpy (dest, &info->bdaddr);
         return 0;
     }
-
-    
     return -1;
 }
 
@@ -101,7 +109,7 @@ int ble_enable_scan(struct ble_t* self)
     int status = 0, ret = 0;
     int fd = self->device;
 
-    ret = hci_le_set_scan_parameters(fd, 0x00, 0x00a0, 0x00a0, 0x00, 0x00, 1000);
+    ret = hci_le_set_scan_parameters(fd, 0x01, 0x00a0, 0x00a0, 0x00, 0x00, 1000);
 
     if (ret != 0)
     {
@@ -117,7 +125,7 @@ int ble_enable_scan(struct ble_t* self)
         goto fail;
     }
 
-    ret = hci_le_set_scan_enable(fd, 0x01, 0x01, 1000);
+    ret = hci_le_set_scan_enable(fd, 0x01, 0x00, 1000);// we will handle duplicates
     if (ret < 0)
     {
         printf("failed to enable scan\n");
@@ -147,14 +155,20 @@ int ble_enable_scan(struct ble_t* self)
 
 inline int ble_disable_scan (struct ble_t* self)
 {
-    if (hci_le_set_scan_enable(self->device, 0x00, 0x00, 1000) > 0)
+    if (hci_le_set_scan_enable(self->device, 0x00, 0x00, 1000) < 0)
     {
-        self->scan = false;
-        return 0;
+        return -1;
     }
-    return -1;
+    reset_dup_entry (&check_list);
+    self->scan = false;
+    return 0;
 }
-// error -1, no response 0, success > 0
+
+void ble_rm_addr (struct ble_t* self, bdaddr_t addr)
+{
+    rm_dup_entry_byaddr (&check_list, addr);
+}
+//return on error -1,  success  0
 int ble_get_scan_result (struct ble_t* self, bdaddr_t* dest, int timeout)
 {
     if (!self->scan)
@@ -162,23 +176,36 @@ int ble_get_scan_result (struct ble_t* self, bdaddr_t* dest, int timeout)
         return -1;
     }
     uint8_t buf[HCI_MAX_EVENT_SIZE];
+    bdaddr_t addr = {0x00,};
     short int old_evt = self->pfd.events;
     int ret = 0, len = 0;
+    struct dup_elem* dup = NULL;
     
     self->pfd.events = POLLIN;
 
     ret = poll(&self->pfd, 1, timeout);
-    if (self->pfd.revents & POLLIN)
+    if (ret <= 0 || !(self->pfd.revents & POLLIN) )
     {
-        len = read(self->device, buf, HCI_MAX_EVENT_SIZE);
-        if (len >= HCI_EVENT_HDR_SIZE)
-        {
-            ble_parse_scan_result(buf, len, dest);
-            ret = len;
-        }
-     }
-   
-    return ret;
+        return -1;        
+    }
+
+    len = read (self->pfd.fd, buf, HCI_MAX_EVENT_SIZE);
+    if (ble_parse_scan_result (buf, len, &addr) < 0)
+    {
+        return -1;
+    }
+
+    //check duplication
+    dup = find_dup_entry (&check_list, addr);
+    if (NULL == dup) 
+    {
+        dup = create_dup_entry (addr);
+        insert_dup_entry (&check_list, dup);
+        bacpy (dest, &addr);
+        return 0;
+    }
+
+    return -1;
 }
 
 static int ble_cancel_connect (struct ble_t* self, int timeout)
@@ -218,4 +245,5 @@ int ble_read_rssi (struct ble_t* self, uint16_t device_handle, int8_t* dest, int
 {
     return hci_read_rssi (self->device, device_handle, dest, timeout);
 }
+
 
