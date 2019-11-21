@@ -11,7 +11,6 @@ static struct node_list unknown_nodes;
 static struct node_list queried_nodes;
 
 static int pos_process_query_result (struct position_t* self, mavlink_message_t* msg);
-
 static void pos_process_scan_result (struct position_t* self, bdaddr_t addr);
 
 struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
@@ -45,7 +44,6 @@ static void pos_process_scan_result (struct position_t* self, bdaddr_t addr)
 {
     //ble object handle duplicates. 
     struct node_basic* node = node_create (addr, FOUND);
-
     node_insert (&unknown_nodes, node);
 }
 
@@ -60,18 +58,6 @@ void pos_scan_perimeter (struct position_t* self, int timeout)
     //ok something outside.
     pos_process_scan_result (self, addr_found);
 }
-
-void pos_check_usable_node (struct position_t* self, int timeout)
-{
-    if (unknown_nodes.len < QUERY_THRESHOLD) // || !some other condition
-    {
-        return;
-    }
-    
-    // condition met. query to server.
-
-}
-
 
 int pos_estimate_position (struct position_t* self, int timeout)
 {
@@ -114,47 +100,17 @@ int pos_estimate_position (struct position_t* self, int timeout)
     return 0;        
 }
 
-int pos_process_query_result (struct position_t* self, mavlink_message_t* msg)
+void pos_print_nodes (struct position_t* self, struct node_list* target)
 {
-    mavlink_query_result_t res;
-    struct node_basic* node = NULL;
-    struct node_info* info = NULL;
-    bdaddr_t matched;
-
-    mavlink_msg_query_result_decode (msg, &res);
-
-    bacpy (&matched, res.match_addr);
-    float x = res.x, y = res.y;
-
-    node = node_find (matched, &unknown_nodes);
-    if (NULL == node)
-    {
-        return -1;// drone moves fast, or error
-    }
-
-    node_promote (node);
-
-    node->status = READY;
-    info = node->info;
-
-    info->real_x = x, info->real_y = y;
-
-    node_remove_frm_list (&unknown_nodes, node);
-    node_insert (&self->ready_list, node);
-
-    return 0;
-}
-
-void pos_print_unknown_nodes (struct position_t* self)
-{
-    if (list_empty (&unknown_nodes))
+    struct list* target_list = &target->head;
+    if (list_empty (target_list))
         return NULL;
     
-    struct list_elem* end = list_end (&unknown_nodes);
+    struct list_elem* end = list_end (target_list);
     struct list_elem* e = NULL;
     struct node_basic* cur;
 
-    for (e = list_front (&unknown_nodes);
+    for (e = list_front (&target_list);
          e != end;
          e = list_next (e))
     {
