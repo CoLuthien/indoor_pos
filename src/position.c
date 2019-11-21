@@ -9,7 +9,6 @@
 
 static struct node_list unknown_nodes;
 static struct node_list queried_nodes;
-static struct node_list dup_filter;//duplication filter purpose
 
 static int pos_process_query_result (struct position_t* self, mavlink_message_t* msg);
 
@@ -30,7 +29,6 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
     node_list_init (&self->active_list);
     node_list_init (&unknown_nodes);
     node_list_init (&queried_nodes);
-    node_list_init (&dup_filter);
 
     self->status = INIT;
     self->pos_valid = false;
@@ -45,18 +43,10 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
 
 static void pos_process_scan_result (struct position_t* self, bdaddr_t addr)
 {
-    // we need to filter out duplicates
-    struct node_basic* node = node_find (addr, &dup_filter);
-    if (node == NULL)
-    {// very first found
-        node = node_create (addr, FILTER_USE);
-        node_insert (&dup_filter, node);
-        
-        node = NULL;// it is in list. we don't care
+    //ble object handle duplicates. 
+    struct node_basic* node = node_create (addr, FOUND);
 
-        node = node_create (addr, FOUND);
-        node_insert (&unknown_nodes, node);
-    }
+    node_insert (&unknown_nodes, node);
 }
 
 void pos_scan_perimeter (struct position_t* self, int timeout)
@@ -71,12 +61,23 @@ void pos_scan_perimeter (struct position_t* self, int timeout)
     pos_process_scan_result (self, addr_found);
 }
 
+void pos_check_usable_node (struct position_t* self, int timeout)
+{
+    if (unknown_nodes.len < QUERY_THRESHOLD) // || !some other condition
+    {
+        return;
+    }
+    
+    // condition met. query to server.
+
+}
+
 
 int pos_estimate_position (struct position_t* self, int timeout)
 {
     struct list* cand_list = &self->active_list.head;
     struct list_elem* e = NULL;
-    struct list_elem* end = list_back (cand_list);
+    struct list_elem* end = list_end (cand_list);
     struct node_basic* cur = NULL;
     struct node_info* info = NULL;
 
@@ -143,3 +144,23 @@ int pos_process_query_result (struct position_t* self, mavlink_message_t* msg)
 
     return 0;
 }
+
+void pos_print_unknown_nodes (struct position_t* self)
+{
+    if (list_empty (&unknown_nodes))
+        return NULL;
+    
+    struct list_elem* end = list_end (&unknown_nodes);
+    struct list_elem* e = NULL;
+    struct node_basic* cur;
+
+    for (e = list_front (&unknown_nodes);
+         e != end;
+         e = list_next (e))
+    {
+        cur = list_entry (e, struct node_basic, elem);
+        printf("%s\t", batostr(&cur->addr));
+    }
+    printf("\n\n");
+}
+

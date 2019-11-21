@@ -31,6 +31,10 @@ int ble_end_connection (struct ble_t* self, uint16_t handle, uint8_t reason, int
 int ble_read_rssi (struct ble_t* self, uint16_t device_handle, int8_t* dest, int timeout);
 void ble_rm_addr (struct ble_t* self, bdaddr_t addr);
 
+void ble_print_dup_filter (struct ble_t* self);
+
+
+
 
 
 #endif

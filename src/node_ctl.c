@@ -10,6 +10,7 @@ struct node_basic* node_get_elem (struct list_elem* e)
 {
     return list_entry (e, struct node_basic, elem);
 }
+
 void node_list_init (struct node_list* target)
 {
     list_init(&target->head);
@@ -66,7 +67,7 @@ struct node_basic* node_find (bdaddr_t addr, struct node_list* target_list)
     }
     struct node_basic* cur = NULL;
     struct list* list = &target_list->head;
-    struct list_elem* end = list_back (list);
+    struct list_elem* end = list_end (list);
     for (struct list_elem* e = list_front (list);
          e != end;
          e = list_next(e))

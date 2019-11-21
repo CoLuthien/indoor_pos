@@ -10,7 +10,7 @@ struct dup_elem
     bdaddr_t addr;
 };
 
-struct list_elem* find_dup_entry (struct list* check_list, bdaddr_t addr);
+struct dup_elem* find_dup_entry (struct list* check_list, bdaddr_t addr);
 struct dup_elem* create_dup_entry (bdaddr_t addr);
 void rm_dup_entry_byaddr (struct list* check_list, bdaddr_t addr);
 void rm_dup_entry (struct list* check_list, struct dup_elem* dup);

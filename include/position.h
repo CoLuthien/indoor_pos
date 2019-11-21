@@ -24,4 +24,10 @@ struct position_t
 struct position_t* pos_init (struct ble_t* ble, struct comm_t* com);
 
 void pos_scan_perimeter (struct position_t* self, int timeout);
+void pos_check_usable_node (struct position_t* self, int timeout);
 int pos_estimate_position (struct position_t* self, int timeout);
+
+
+//debuggin purpose
+
+void pos_print_unknown_nodes (struct position_t* self);

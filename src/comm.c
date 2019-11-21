@@ -62,12 +62,12 @@ int comm_write(struct comm_t* self, uint8_t* buf, size_t len)
 int comm_read(struct comm_t* self, uint8_t* buf, size_t buf_size, time_t timeout)
 {
     int poll_ret = poll(&self->pfd, 1, timeout);
-    if (poll_ret < 0)
+    if (poll_ret <= 0)
     {
         return -1; // recovery process need
     }
 
-    if (poll_ret > 0 && self->pfd.revents & POLLIN)
+    if (self->pfd.revents & POLLIN)
     {
         return read(self->pfd.fd, buf, buf_size);        
     }

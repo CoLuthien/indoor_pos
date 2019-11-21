@@ -1,4 +1,5 @@
 #include "ble_filter.h"
+#include "debug.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,7 +7,10 @@
 
 struct dup_elem* find_dup_entry (struct list* check_list, bdaddr_t addr)
 {
-    struct list_elem* end = list_back (&check_list);
+    if (list_empty (check_list))
+        return NULL;
+    
+    struct list_elem* end = list_end (check_list);
     struct list_elem* e = NULL;
     struct dup_elem* cur;
 
@@ -15,6 +19,7 @@ struct dup_elem* find_dup_entry (struct list* check_list, bdaddr_t addr)
          e = list_next (e))
     {
         cur = list_entry (e, struct dup_elem, elem);
+
         if (bacmp (&cur->addr, &addr) == 0)
         {
             return cur;
@@ -62,7 +67,7 @@ void insert_dup_entry (struct list* check_list, struct dup_elem* dup)
 
 void reset_dup_entry (struct list* check_list)
 {
-    struct list_elem* end = list_back (check_list);
+    struct list_elem* end = list_end (check_list);
     struct list_elem* e = NULL;
     struct dup_elem* cur;
 
@@ -73,7 +78,6 @@ void reset_dup_entry (struct list* check_list)
         cur = list_entry (e, struct dup_elem, elem);
         e = list_next (e);
         rm_dup_entry (check_list, cur);
+        printf("%s\n", batostr(&cur->addr));
     }
-
-    return NULL;
 }

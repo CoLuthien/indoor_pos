@@ -246,4 +246,23 @@ int ble_read_rssi (struct ble_t* self, uint16_t device_handle, int8_t* dest, int
     return hci_read_rssi (self->device, device_handle, dest, timeout);
 }
 
+void ble_print_dup_filter (struct ble_t* self)
+{
+    if (list_empty (&check_list))
+        return NULL;
+    
+    struct list_elem* end = list_end (&check_list);
+    struct list_elem* e = NULL;
+    struct dup_elem* cur;
+
+    for (e = list_front (&check_list);
+         e != end;
+         e = list_next (e))
+    {
+        cur = list_entry (e, struct dup_elem, elem);
+        printf("%s\t", batostr(&cur->addr));
+    }
+    printf("\n\n");
+}
+
 
