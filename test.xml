@@ -20,7 +20,7 @@
 	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
 	    <field type="uint8_t" name="sys_stat"> status of system</field>
 		<field type="uint8_t" name="node_cnt"> number of querying nodes</field>
-		<field type="uint8_t[48]" name="found_addrs"> addr of found nodes</field>
+		<field type="uint8_t[6]" name="found_addrs"> addr of found nodes</field>
 	</message>
 	<message id="3" name="query_result">
 		<description>result of query </description>
