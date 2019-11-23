@@ -150,7 +150,7 @@ static void mavlink_test_query(uint8_t system_id, uint8_t component_id, mavlink_
         uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
         uint16_t i;
     mavlink_query_t packet_in = {
-        { 5, 6, 7, 8, 9, 10 },151,218,{ 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76 }
+        { 5, 6, 7, 8, 9, 10 },151,218,{ 29, 30, 31, 32, 33, 34 }
     };
     mavlink_query_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
@@ -158,7 +158,7 @@ static void mavlink_test_query(uint8_t system_id, uint8_t component_id, mavlink_
         packet1.node_cnt = packet_in.node_cnt;
         
         mav_array_memcpy(packet1.addr, packet_in.addr, sizeof(uint8_t)*6);
-        mav_array_memcpy(packet1.found_addrs, packet_in.found_addrs, sizeof(uint8_t)*48);
+        mav_array_memcpy(packet1.found_addrs, packet_in.found_addrs, sizeof(uint8_t)*6);
         
 #ifdef MAVLINK_STATUS_FLAG_OUT_MAVLINK1
         if (status->flags & MAVLINK_STATUS_FLAG_OUT_MAVLINK1) {
@@ -207,13 +207,13 @@ static void mavlink_test_query_result(uint8_t system_id, uint8_t component_id, m
         uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
         uint16_t i;
     mavlink_query_result_t packet_in = {
-        17.0,45.0,{ 29, 30, 31, 32, 33, 34 },175,{ 242, 243, 244, 245, 246, 247 }
+        17.0,45.0,{ 29, 30, 31, 32, 33, 34 },{ 175, 176, 177, 178, 179, 180 },65
     };
     mavlink_query_result_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
         packet1.x = packet_in.x;
         packet1.y = packet_in.y;
-        packet1.sys_stat = packet_in.sys_stat;
+        packet1.is_usable = packet_in.is_usable;
         
         mav_array_memcpy(packet1.addr, packet_in.addr, sizeof(uint8_t)*6);
         mav_array_memcpy(packet1.match_addr, packet_in.match_addr, sizeof(uint8_t)*6);
@@ -230,12 +230,12 @@ static void mavlink_test_query_result(uint8_t system_id, uint8_t component_id, m
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-    mavlink_msg_query_result_pack(system_id, component_id, &msg , packet1.addr , packet1.sys_stat , packet1.match_addr , packet1.x , packet1.y );
+    mavlink_msg_query_result_pack(system_id, component_id, &msg , packet1.addr , packet1.match_addr , packet1.is_usable , packet1.x , packet1.y );
     mavlink_msg_query_result_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-    mavlink_msg_query_result_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.addr , packet1.sys_stat , packet1.match_addr , packet1.x , packet1.y );
+    mavlink_msg_query_result_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.addr , packet1.match_addr , packet1.is_usable , packet1.x , packet1.y );
     mavlink_msg_query_result_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
@@ -248,7 +248,7 @@ static void mavlink_test_query_result(uint8_t system_id, uint8_t component_id, m
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
         
         memset(&packet2, 0, sizeof(packet2));
-    mavlink_msg_query_result_send(MAVLINK_COMM_1 , packet1.addr , packet1.sys_stat , packet1.match_addr , packet1.x , packet1.y );
+    mavlink_msg_query_result_send(MAVLINK_COMM_1 , packet1.addr , packet1.match_addr , packet1.is_usable , packet1.x , packet1.y );
     mavlink_msg_query_result_decode(last_msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 }
