@@ -45,6 +45,8 @@ static void pos_process_scan_result (struct position_t* self, bdaddr_t addr)
     //ble object handle duplicates. 
     struct node_basic* node = node_create (addr, FOUND);
     node_insert (&unknown_nodes, node);
+    printf("unknowns:");
+    pos_print_nodes (self, &unknown_nodes);
 }
 
 void pos_scan_perimeter (struct position_t* self, int timeout)
@@ -104,13 +106,13 @@ void pos_print_nodes (struct position_t* self, struct node_list* target)
 {
     struct list* target_list = &target->head;
     if (list_empty (target_list))
-        return NULL;
+        return;
     
     struct list_elem* end = list_end (target_list);
     struct list_elem* e = NULL;
     struct node_basic* cur;
-
-    for (e = list_front (&target_list);
+    int cnt = 0;
+    for (e = list_front (target_list);
          e != end;
          e = list_next (e))
     {
@@ -119,4 +121,34 @@ void pos_print_nodes (struct position_t* self, struct node_list* target)
     }
     printf("\n\n");
 }
+
+int pos_query_nodes (struct position_t* self, int timeout)
+{
+    struct node_basic* node = NULL;
+    struct list* unknown_list = &unknown_nodes.head;
+    mavlink_message_t msg;
+    uint16_t len = 0;
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+    if (list_empty (unknown_list))
+    {
+        return -1;
+    }
+    
+    struct list* queried_list = &queried_nodes.head;
+    uint8_t addrs[6] = {0,}; 
+    struct list_elem* e  = list_front (unknown_list);
+    node = node_get_elem (e);
+
+    node_remove_frm_list (unknown_list, node);
+    node_insert (&queried_nodes, node);
+        
+    bacpy (addrs, &node->addr);
+
+    mavlink_msg_query_pack (1, 1, &msg, &self->ble->my_addr, self->status, 1, addrs);
+    len = mavlink_msg_to_send_buffer (buf, &msg);
+
+    return comm_append_write (self->com, buf, len);
+}
+
 

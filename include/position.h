@@ -14,7 +14,6 @@ struct position_t
     struct ble_t* ble;
     struct comm_t* com;
     struct node_list ready_list, active_list;
-    struct list* pkt_queue;
     uint8_t status;
     
     bool pos_valid ;
