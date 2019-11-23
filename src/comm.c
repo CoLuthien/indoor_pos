@@ -104,6 +104,7 @@ int comm_do_write (struct comm_t* self, int timeout)
     }
     int nread = -1, len = 0;
     short int old_evt = self->pfd.events;
+
     self->pfd.events = POLLOUT;
     struct msg_elem* msg = list_entry (list_pop_front (&self->write_queue), struct msg_elem, elem);
     
@@ -136,6 +137,30 @@ int comm_do_read (struct comm_t* self, int timeout)
         return -1;
     }
 
+    int nread = -1, len = 0;
+    short int old_evt = self->pfd.events;
+    self->pfd.events = POLLIN;
+    
+    nread = poll (&self->pfd, 1, timeout);
+    if (nread <= 0)
+    {
+        goto fail;
+    }
+
+    if (self->pfd.events & POLLIN)
+    {
+        goto success;
+    }
+
+    fail:
+        return_elem (self, msg);
+        return -1;
+
+    success:
+        len = read (self->pfd.fd, msg->buf, MAVLINK_MAX_PACKET_LEN);
+        msg->len = len;
+        list_push_back (&self->read_queue, &msg->elem);
+        return 0;
 }
 
 static struct msg_elem* request_elem (struct comm_t* self)
