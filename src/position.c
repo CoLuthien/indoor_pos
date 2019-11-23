@@ -151,4 +151,80 @@ int pos_query_nodes (struct position_t* self, int timeout)
     return comm_append_write (self->com, buf, len);
 }
 
+static int pos_process_query_result (struct position_t* self, mavlink_message_t* msg)
+{
+    mavlink_query_result_t res;
+    mavlink_msg_query_result_decode (msg, &res);
+    if (res.is_usable == 0)
+    {
+        return -1;
+    }
+    struct node_basic* node = NULL;
+    struct node_info* info = NULL;
+    bdaddr_t target_addr;
+
+    if (bacmp (&self->ble->my_addr, res.addr) != 0)
+    {
+        return -1;
+    }
+
+    bacpy (&target_addr, res.match_addr);
+
+
+    node = node_find (target_addr, &queried_nodes);
+    if (NULL == node)
+    {
+        return -1;
+    }
+    node->status = READY;
+    node_promote(node);
+
+    info = node->info;
+    
+    info->real_x = res.x;
+    info->real_y = res.y;
+
+    return 0;
+}
+
+void pos_process_queries (struct position_t* self, int timeout)
+{
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+    int len;
+    mavlink_message_t msg;
+    mavlink_status_t status;
+
+
+    len = comm_try_read (self->com , buf, MAVLINK_MAX_PACKET_LEN);
+    if (len < 0)
+    {
+        return;
+    }
+
+
+    for (int i = 0; i < len; i++)
+    {
+        if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status))
+        {
+            switch (msg.msgid)
+            {
+            case MAVLINK_MSG_ID_heartbeat:
+                break;
+            case MAVLINK_MSG_ID_query_result:
+                pos_process_query_result (self, &msg);
+                break;
+            case MAVLINK_MSG_ID_command:
+                break;
+            
+            default:
+                break;
+            }
+        }
+    }
+
+
+}
+
+
+
 

@@ -26,8 +26,7 @@ void pos_scan_perimeter (struct position_t* self, int timeout);
 int pos_estimate_position (struct position_t* self, int timeout);
 
 int pos_query_nodes (struct position_t* self, int timeout);
-
-
+void pos_process_queries (struct position_t* self, int timeout);
 
 //debuggin purpose
 
