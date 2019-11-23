@@ -1,4 +1,5 @@
 #include "comm.h"
+#include <time.h>
 
 
 struct msg_elem
@@ -13,7 +14,7 @@ static int init_connection(struct comm_t* com, const char* server_addr, const ch
 
 static struct msg_elem* request_elem(struct comm_t* self);
 static void return_elem (struct comm_t* self, struct msg_elem* msg);
-static void free_elem (struct comm_t* self);
+static void free_elem (struct comm_t* self, struct msg_elem* msg);
 
 static inline int init_socket(struct comm_t* com, const char* i_addr, const char* port)
 {
@@ -49,8 +50,14 @@ struct comm_t* comm_init(const char* server_addr, const char* server_port)
     if(init_connection(self, server_addr, server_port) < 0)
     {
         comm_destroy(self);
+        printf("comm init fail\n");
+        return self;
     }
     list_init (&self->elem_buffer);
+    list_init (&self->read_queue);
+    list_init (&self->write_queue);
+
+    printf("comm init success\n");
 
     return self;
 }
@@ -88,6 +95,49 @@ int comm_read(struct comm_t* self, uint8_t* buf, size_t buf_size, time_t timeout
     return poll_ret;
 }
 
+int comm_do_write (struct comm_t* self, int timeout)
+{
+    //for now we don't care about timeout. process just 1 request per call
+    if (list_empty (&self->write_queue))
+    {
+        return -1;
+    }
+    int nread = -1, len = 0;
+    short int old_evt = self->pfd.events;
+    self->pfd.events = POLLOUT;
+    struct msg_elem* msg = list_entry (list_pop_front (&self->write_queue), struct msg_elem, elem);
+    
+    nread = poll (&self->pfd, 1, timeout);
+    if (nread <= 0)
+    {
+        goto fail;
+    }
+
+    if (self->pfd.revents & POLLOUT)
+    {
+        goto success;
+    }
+
+    fail:
+        list_push_back (&self->write_queue, &msg->elem);
+        return -1;
+
+    success:
+        len = write (self->pfd.fd, msg->buf, msg->len);
+        return_elem (self, msg);
+        return len;
+}
+
+int comm_do_read (struct comm_t* self, int timeout)
+{
+    struct msg_elem* msg = request_elem (self);
+    if (NULL == msg)
+    {
+        return -1;
+    }
+
+}
+
 static struct msg_elem* request_elem (struct comm_t* self)
 {
     struct msg_elem* msg = NULL;
@@ -97,6 +147,7 @@ static struct msg_elem* request_elem (struct comm_t* self)
         msg->len = 0;
         return msg;
     }
+
     return list_entry (list_pop_front(&self->elem_buffer), struct msg_elem, elem);
 }
 
@@ -105,6 +156,11 @@ static void return_elem (struct comm_t* self, struct msg_elem* msg)
     memset (msg->buf, 0x00, MAVLINK_MAX_PACKET_LEN);
     msg->len = 0;
     list_push_front (&self->elem_buffer, &msg->elem);    
+}
+
+static void free_elem (struct comm_t* self, struct msg_elem* msg)
+{
+    free(msg);
 }
 
 
@@ -116,6 +172,25 @@ int comm_append_write (struct comm_t* self, uint8_t* buf, size_t len)
 
     list_push_back (&self->write_queue, &msg->elem);    
     return 0;
+}
+
+int comm_try_read (struct comm_t* self, uint8_t* buf, size_t len)
+{
+    struct msg_elem* msg = NULL;
+    int ret = 0;
+
+    if (list_empty (&self->read_queue))
+        return -1;
+
+    struct list_elem* e = list_pop_front (&self->read_queue);
+    msg = list_entry (e, struct msg_elem, elem);
+
+    memcpy (buf, msg->buf, len);
+    ret = msg->len;
+
+    return_elem(self, msg);
+
+    return ret;
 }
 
 
