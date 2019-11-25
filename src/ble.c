@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 #include <unistd.h>
 
 
@@ -11,7 +12,6 @@
 static struct list check_list;
 static int ble_set_event_mask (int fd);
 static void ble_request_form(struct hci_request* form, uint16_t ocf, int clen, void* status, void* cparams);
-static int ble_cancel_connect (struct ble_t* self, int timeout); \
 static void ble_request_form(struct hci_request* form, uint16_t ocf, int clen, void* status, void* cparams)
 {
     memset(form, 0, sizeof(struct hci_request));
@@ -109,14 +109,15 @@ int ble_enable_scan(struct ble_t* self)
     int status = 0, ret = 0;
     int fd = self->device;
 
-    ret = hci_le_set_scan_parameters(fd, 0x01, 0x00a0, 0x00a0, 0x00, 0x00, 1000);
+    
+    ret = hci_le_set_scan_parameters(fd, 0x00, 0x0010, 0x0010, 0x00, 0x00, 1000);
 
     if (ret != 0)
     {
         printf("Failed to set scan parameters. Error code is %d\n", ret);
         goto fail;
     }
-
+/*
     ret = ble_set_event_mask(fd); 
 
     if (ret != 0)
@@ -124,8 +125,9 @@ int ble_enable_scan(struct ble_t* self)
         printf("Failed to set event mask. Error code is %d\n", ret);
         goto fail;
     }
+*/
 
-    ret = hci_le_set_scan_enable(fd, 0x01, 0x00, 1000);// we will handle duplicates
+    ret = hci_le_set_scan_enable(fd, 0x01, 0x01, 1000);// we will handle duplicates
     if (ret < 0)
     {
         printf("failed to enable scan\n");
@@ -137,6 +139,8 @@ int ble_enable_scan(struct ble_t* self)
     hci_filter_clear(&nf);
     hci_filter_set_ptype(HCI_EVENT_PKT, &nf);
     hci_filter_set_event(EVT_LE_META_EVENT, &nf);
+    hci_filter_set_event(EVT_CMD_COMPLETE, &nf);
+    hci_filter_set_event(EVT_CMD_STATUS, &nf);
 
     if(setsockopt(fd, SOL_HCI, HCI_FILTER, &nf, sizeof(nf)) < 0)
     {
@@ -208,7 +212,7 @@ int ble_get_scan_result (struct ble_t* self, bdaddr_t* dest, int timeout)
     return -1;
 }
 
-static int ble_cancel_connect (struct ble_t* self, int timeout)
+int ble_cancel_connect (struct ble_t* self, int timeout)
 {
     int ret = 0;
     struct hci_request rq = {0, };
@@ -226,19 +230,19 @@ static int ble_cancel_connect (struct ble_t* self, int timeout)
 
 int ble_try_connect (struct ble_t* self, bdaddr_t addr, uint16_t* dst, int timeout)
 {
-    uint16_t handle = 0;
-    int ret = hci_le_create_conn(self->device, 0x0030, 0x0030,
+    uint16_t handle = 1;
+    int ret = hci_le_create_conn(self->device, 0x0120, 0x0120,
         0x00, 0x00, addr, 0x00, 0x0010, 0x0020, 0x0010,
         0x100, 0x00, 0x10, &handle, timeout);
-    
     if (ret < 0)
     {
-        //something happen.
-        return ble_cancel_connect(self, timeout);// need dynamic!
+        printf("failed\n");
+        return ret;
     }
+    printf("%d\n", handle);
 
     *dst = handle;
-    return 0;
+    return ret;
 }
 
 int ble_read_rssi (struct ble_t* self, uint16_t device_handle, int8_t* dest, int timeout)
@@ -249,7 +253,7 @@ int ble_read_rssi (struct ble_t* self, uint16_t device_handle, int8_t* dest, int
 void ble_print_dup_filter (struct ble_t* self)
 {
     if (list_empty (&check_list))
-        return NULL;
+        return;
     
     struct list_elem* end = list_end (&check_list);
     struct list_elem* e = NULL;
