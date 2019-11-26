@@ -3,6 +3,7 @@
 #include "mavlink.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #define QUERY_THRESHOLD 8
 #define MAX_PKT_LEN 8
@@ -25,7 +26,7 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
     self->com = com;
 
     node_list_init (&self->ready_list);
-    node_list_init (&self->active_list);
+    node_list_init (&self->conn_list);
     node_list_init (&unknown_nodes);
     node_list_init (&queried_nodes);
 
@@ -45,14 +46,11 @@ static void pos_process_scan_result (struct position_t* self, bdaddr_t addr)
     //ble object handle duplicates. 
     struct node_basic* node = node_create (addr, FOUND);
     node_insert (&unknown_nodes, node);
-    printf("unknowns:");
-    pos_print_nodes (self, &unknown_nodes);
 }
 
 void pos_scan_perimeter (struct position_t* self, int timeout)
 {
     bdaddr_t addr_found = {0x00, };
-    
     if (ble_get_scan_result (self->ble, &addr_found, timeout) < 0)
     {
         return;
@@ -63,43 +61,27 @@ void pos_scan_perimeter (struct position_t* self, int timeout)
 
 int pos_estimate_position (struct position_t* self, int timeout)
 {
-    struct list* cand_list = &self->active_list.head;
-    struct list_elem* e = NULL;
-    struct list_elem* end = list_end (cand_list);
-    struct node_basic* cur = NULL;
+    struct node_basic* node = NULL;
     struct node_info* info = NULL;
+    struct list* conn_list = &self->conn_list.head;
 
-    struct ble_t* ble = self->ble;
-    float est_x, est_y;
-    int list_len = self->active_list.len;
-    int ret = 0;
-
-    int time_to_process = timeout / list_len;
-        
-    for (e = list_front (cand_list); e != end; e = list_next(e))
+    if (list_empty(conn_list))
     {
-        cur = node_get_elem (e);
-        info = cur->info;
-        if (cur->status == CONNECTED)
-        {
-            ret = hci_read_rssi(ble->device, info->handle, &info->rssi, time_to_process);
-        }
-        else
-        {
-            ret = ble_try_connect (ble, cur->addr, &info->handle, time_to_process);
-        }
-
-        if (ret < 0)
-        {
-            cur->status = ERROR;
-            continue;
-        }
+        //ToDo: handle 
+        return -1;
     }
 
-    self->cur_x = est_x;
-    self->cur_y = est_y;
+    struct list_elem* end = list_end (conn_list);
 
-    return 0;        
+    for (struct list_elem* e = list_front (conn_list); e != end; e = list_next(e))
+    {
+        node = node_get_elem (e);
+        info = node->info;
+        if (!info->rssi_valid)
+            continue;
+        
+    }
+
 }
 
 void pos_print_nodes (struct position_t* self, struct node_list* target)
@@ -140,7 +122,7 @@ int pos_query_nodes (struct position_t* self, int timeout)
     struct list_elem* e  = list_front (unknown_list);
     node = node_get_elem (e);
 
-    node_remove_frm_list (unknown_list, node);
+    node_remove_frm_list (&unknown_nodes, node);
     node_insert (&queried_nodes, node);
         
     bacpy (addrs, &node->addr);
@@ -155,10 +137,6 @@ static int pos_process_query_result (struct position_t* self, mavlink_message_t*
 {
     mavlink_query_result_t res;
     mavlink_msg_query_result_decode (msg, &res);
-    if (res.is_usable == 0)
-    {
-        return -1;
-    }
     struct node_basic* node = NULL;
     struct node_info* info = NULL;
     bdaddr_t target_addr;
@@ -170,20 +148,29 @@ static int pos_process_query_result (struct position_t* self, mavlink_message_t*
 
     bacpy (&target_addr, res.match_addr);
 
-
     node = node_find (target_addr, &queried_nodes);
     if (NULL == node)
     {
         return -1;
     }
+    
+    if (res.is_usable == 0)
+    {
+        node_remove_frm_list (&queried_nodes, node);
+        node_destroy (node);
+        return 0;
+    }
+
     node->status = READY;
     node_promote(node);
 
     info = node->info;
-    
     info->real_x = res.x;
     info->real_y = res.y;
 
+    node_remove_frm_list (&queried_nodes, node);
+    node_insert (&self->ready_list, node);
+    
     return 0;
 }
 
@@ -221,10 +208,58 @@ void pos_process_queries (struct position_t* self, int timeout)
             }
         }
     }
+}
 
+void pos_try_connect (struct position_t* self, int timeout)
+{
+    struct node_basic* node = NULL;
+    struct node_info* info = NULL;
+    struct list* conn_list = &self->conn_list.head;
+    struct list* ready_list = &self->ready_list.head;
 
+    if (self->conn_list.len >= 16)
+    {
+        return;
+    }
+
+    node = node_get_elem (list_pop_front (ready_list));
+    info = node->info;
+
+    if (ble_try_connect (self->ble, node->addr, &info->handle, timeout) <0)
+    {
+        ble_cancel_connect (self->ble, timeout);
+        node_insert (ready_list, node);
+        return;
+    }
+
+    node->status = CONNECTED;
+    node_insert (conn_list, node);
+    return;
 }
 
 
+void pos_prepare_estimation (struct position_t* self, int timeout)
+{
+    struct node_basic* node = NULL;
+    struct node_info* info = NULL;
+    struct list* target_list = &self->conn_list.head;
+    if (list_empty (target_list))
+    {
+        return;
+    }
 
+    struct list_elem* end = list_end (target_list);
 
+    for (struct list_elem* e = list_front (target_list); e != end; e = list_next (e))
+    {
+        node = node_get_elem (e);
+        info = node->info;
+        if (ble_read_rssi (self->ble, info->handle, &info->rssi, timeout) < 0)
+        {
+            info->rssi = 127;
+            info->rssi_valid = false;
+            continue;
+        }
+        info->rssi_valid = true;
+    }
+}
