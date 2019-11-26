@@ -1,6 +1,7 @@
 #include "node_ctl.h"
 #include "position.h"
 #include "mavlink.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -61,27 +62,80 @@ void pos_scan_perimeter (struct position_t* self, int timeout)
 
 int pos_estimate_position (struct position_t* self, int timeout)
 {
-    struct node_basic* node = NULL;
-    struct node_info* info = NULL;
     struct list* conn_list = &self->conn_list.head;
-
     if (list_empty(conn_list))
     {
         //ToDo: handle 
         return -1;
     }
 
+    struct node_basic* node = NULL;
+    struct node_info* info = NULL;
     struct list_elem* end = list_end (conn_list);
+    float weight_sum = 0.0f, norm_weight_sum = 0.0f;
+    struct list temp_list;
+    list_init (&temp_list);
 
+
+    for (struct list_elem* e = list_front (conn_list); e != end;)
+    {
+        node = node_get_elem (e);
+        info = node->info;
+        if (info->rssi == 127)
+        {
+            e = list_remove (e);
+            list_push_back (&temp_list, &node->elem);
+            continue;
+        }
+        info->weight = sqrtf (powf(10.0f, ((float) info->rssi) / 10.0f)
+                             );
+        
+        weight_sum += info->weight;        
+        e = list_next (e);
+    }
+
+    end = list_end (conn_list);
+    int len = list_size (conn_list);
     for (struct list_elem* e = list_front (conn_list); e != end; e = list_next(e))
     {
         node = node_get_elem (e);
         info = node->info;
-        if (!info->rssi_valid)
-            continue;
-        
+        info->weight = info->weight / weight_sum; // normalize weight
+
+        info->weight = (info->weight * powf ((float) len, 2.0 * info->weight)); //improved weight
+        norm_weight_sum += info->weight;
     }
 
+    float est_x = 0.0f, est_y = 0.0f;
+    
+    for (struct list_elem* e = list_front (conn_list); e != end; e = list_next(e))
+    {
+        node = node_get_elem (e);
+        info = node->info;
+
+        info->weight = info->weight / norm_weight_sum; // final weight
+        // now calc est pos
+        est_x += info->weight * info->real_x;
+        est_y += info->weight * info->real_y;
+    }
+
+    self->cur_x = est_x;
+    self->cur_y = est_y;
+
+    if (!list_empty (&temp_list))
+    {
+        end = list_end (&temp_list);
+        for (struct list_elem* e = list_front (&temp_list); e != end;)
+        {
+            node = node_get_elem (e);
+            e = list_remove (e);
+
+            list_push_back (conn_list, &node->elem);
+        }        
+
+    }
+    
+    return 0;
 }
 
 void pos_print_nodes (struct position_t* self, struct node_list* target)
@@ -183,7 +237,7 @@ void pos_process_queries (struct position_t* self, int timeout)
 
 
     len = comm_try_read (self->com , buf, MAVLINK_MAX_PACKET_LEN);
-    if (len < 0)
+    if (len <= 0)
     {
         return;
     }
@@ -254,12 +308,11 @@ void pos_prepare_estimation (struct position_t* self, int timeout)
     {
         node = node_get_elem (e);
         info = node->info;
+        ASSERT (node->status == CONNECTED);
         if (ble_read_rssi (self->ble, info->handle, &info->rssi, timeout) < 0)
         {
             info->rssi = 127;
-            info->rssi_valid = false;
             continue;
         }
-        info->rssi_valid = true;
     }
 }
