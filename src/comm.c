@@ -38,7 +38,7 @@ static int init_connection(struct comm_t* com, const char* server_addr, const ch
         return fd;// fail to open socket
     }
 
-    ret = connect(com->client_sock, &com->client_addr, client_len);
+    ret = connect(com->client_sock, (struct sockaddr*)&com->client_addr, client_len);
     com->pfd.fd = com->client_sock;
     com->pfd.events = POLLIN;
     return ret;
@@ -51,8 +51,9 @@ struct comm_t* comm_init(const char* server_addr, const char* server_port)
     {
         comm_destroy(self);
         printf("comm init fail\n");
-        return self;
+        return NULL;
     }
+    printf("%d", self->client_addr.sin_port);
     list_init (&self->elem_buffer);
     list_init (&self->read_queue);
     list_init (&self->write_queue);
@@ -125,6 +126,7 @@ int comm_do_write (struct comm_t* self, int timeout)
 
     success:
         len = write (self->pfd.fd, msg->buf, msg->len);
+       
         return_elem (self, msg);
         return len;
 }
@@ -160,6 +162,7 @@ int comm_do_read (struct comm_t* self, int timeout)
         len = read (self->pfd.fd, msg->buf, MAVLINK_MAX_PACKET_LEN);
         msg->len = len;
         list_push_back (&self->read_queue, &msg->elem);
+ 
         return 0;
 }
 
@@ -168,7 +171,7 @@ static struct msg_elem* request_elem (struct comm_t* self)
     struct msg_elem* msg = NULL;
     if (list_empty (&self->elem_buffer))
     {
-        msg = malloc (sizeof (struct msg_elem));
+        msg = malloc (sizeof(struct msg_elem));
         msg->len = 0;
         return msg;
     }
@@ -194,8 +197,7 @@ int comm_append_write (struct comm_t* self, uint8_t* buf, size_t len)
     struct msg_elem* msg = request_elem (self);
     memcpy (&msg->buf, buf, len);
     msg->len = len;
-
-    list_push_back (&self->write_queue, &msg->elem);    
+    list_push_back (&self->write_queue, &msg->elem); 
     return 0;
 }
 
@@ -209,9 +211,8 @@ int comm_try_read (struct comm_t* self, uint8_t* buf, size_t len)
 
     struct list_elem* e = list_pop_front (&self->read_queue);
     msg = list_entry (e, struct msg_elem, elem);
-
-    memcpy (buf, msg->buf, len);
     ret = msg->len;
+    memcpy (buf, msg->buf, len);
 
     return_elem(self, msg);
 

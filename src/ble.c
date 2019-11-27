@@ -236,10 +236,8 @@ int ble_try_connect (struct ble_t* self, bdaddr_t addr, uint16_t* dst, int timeo
         0x100, 0x00, 0x10, &handle, timeout);
     if (ret < 0)
     {
-        printf("failed\n");
         return ret;
     }
-    printf("%d\n", handle);
 
     *dst = handle;
     return ret;
@@ -267,6 +265,11 @@ void ble_print_dup_filter (struct ble_t* self)
         printf("%s\t", batostr(&cur->addr));
     }
     printf("\n\n");
+}
+
+int ble_end_connection (struct ble_t* self, uint16_t handle, uint8_t reason, int timeout)
+{
+    return hci_disconnect (self->device, handle, reason, timeout);
 }
 
 

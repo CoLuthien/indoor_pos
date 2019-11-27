@@ -13,7 +13,6 @@ enum node_status
     REMOVE = 0,
     FOUND, // found on scan, not sure to use
     READY, // DB confirm to use
-    ACTIVE,// wait on connecting queue
     CONNECTED,
     ERROR,
     FILTER_USE
@@ -32,7 +31,7 @@ struct node_info
     uint16_t handle;
     int8_t rssi;
     float real_x, real_y;
-    float dist;
+    float weight, dist;
     float est_x, est_y;
 };
 

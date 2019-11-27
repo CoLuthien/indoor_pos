@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall
 
 
-SYS_LIBS = -lbluetooth -lpthread
+SYS_LIBS = -lbluetooth -lpthread -lm
 
 build_dir = build
 include_path = -I include -I lib -I include/test

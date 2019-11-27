@@ -25,6 +25,7 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
 
     self->ble = ble; 
     self->com = com;
+    ASSERT (ble != NULL && com != NULL);
 
     node_list_init (&self->ready_list);
     node_list_init (&self->conn_list);
@@ -132,7 +133,6 @@ int pos_estimate_position (struct position_t* self, int timeout)
 
             list_push_back (conn_list, &node->elem);
         }        
-
     }
     
     return 0;
@@ -165,26 +165,22 @@ int pos_query_nodes (struct position_t* self, int timeout)
     mavlink_message_t msg;
     uint16_t len = 0;
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-
     if (list_empty (unknown_list))
     {
         return -1;
     }
-    
     struct list* queried_list = &queried_nodes.head;
     uint8_t addrs[6] = {0,}; 
     struct list_elem* e  = list_front (unknown_list);
     node = node_get_elem (e);
-
     node_remove_frm_list (&unknown_nodes, node);
     node_insert (&queried_nodes, node);
-        
     bacpy (addrs, &node->addr);
 
     mavlink_msg_query_pack (1, 1, &msg, &self->ble->my_addr, self->status, 1, addrs);
     len = mavlink_msg_to_send_buffer (buf, &msg);
-
-    return comm_append_write (self->com, buf, len);
+    len = comm_append_write (self->com, buf, len);
+    return len;
 }
 
 static int pos_process_query_result (struct position_t* self, mavlink_message_t* msg)
@@ -197,7 +193,7 @@ static int pos_process_query_result (struct position_t* self, mavlink_message_t*
 
     if (bacmp (&self->ble->my_addr, res.addr) != 0)
     {
-        return -1;
+        return -1;//server error or pkt error
     }
 
     bacpy (&target_addr, res.match_addr);
@@ -208,7 +204,7 @@ static int pos_process_query_result (struct position_t* self, mavlink_message_t*
         return -1;
     }
     
-    if (res.is_usable == 0)
+    if (0 == res.is_usable)
     {
         node_remove_frm_list (&queried_nodes, node);
         node_destroy (node);
@@ -221,6 +217,8 @@ static int pos_process_query_result (struct position_t* self, mavlink_message_t*
     info = node->info;
     info->real_x = res.x;
     info->real_y = res.y;
+    printf("%s\n", batostr(res.match_addr));
+    printf("%d\n", node->status);
 
     node_remove_frm_list (&queried_nodes, node);
     node_insert (&self->ready_list, node);
@@ -239,10 +237,11 @@ void pos_process_queries (struct position_t* self, int timeout)
     len = comm_try_read (self->com , buf, MAVLINK_MAX_PACKET_LEN);
     if (len <= 0)
     {
+        pos_print_nodes(self, &self->conn_list);
         return;
     }
 
-
+    printf("%f %f\n", self->cur_x, self->cur_y);
     for (int i = 0; i < len; i++)
     {
         if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status))
