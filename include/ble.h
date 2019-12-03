@@ -21,6 +21,7 @@ struct ble_t* ble_init ();
 void ble_destroy (struct ble_t* ble);
 
 int ble_enable_scan (struct ble_t* self);
+int ble_reenable_scan (struct ble_t* self);
 int ble_disable_scan (struct ble_t* self);
 
 int ble_get_scan_result (struct ble_t* self, bdaddr_t* dest, int timeout);
