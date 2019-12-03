@@ -99,6 +99,18 @@ static inline int ble_parse_scan_result(uint8_t* buf, size_t len, bdaddr_t* dest
     }
     return -1;
 }
+int ble_reenable_scan (struct ble_t* self)
+{
+    bool success = true;
+    int ret = hci_le_set_scan_enable(self->device, 0x01, 0x00, 1000);// we will handle duplicates
+    if (ret < 0)
+    {
+        success = false;
+    }
+
+    self->scan = success;
+    return ret;
+}
 
 int ble_enable_scan(struct ble_t* self)
 {
@@ -127,7 +139,7 @@ int ble_enable_scan(struct ble_t* self)
     }
 */
 
-    ret = hci_le_set_scan_enable(fd, 0x01, 0x01, 1000);// we will handle duplicates
+    ret = hci_le_set_scan_enable(fd, 0x01, 0x00, 1000);// we will handle duplicates
     if (ret < 0)
     {
         printf("failed to enable scan\n");
@@ -231,7 +243,7 @@ int ble_cancel_connect (struct ble_t* self, int timeout)
 int ble_try_connect (struct ble_t* self, bdaddr_t addr, uint16_t* dst, int timeout)
 {
     uint16_t handle = 1;
-    int ret = hci_le_create_conn(self->device, 0x0120, 0x0120,
+    int ret = hci_le_create_conn(self->device, 0x0020, 0x0020,
         0x00, 0x00, addr, 0x00, 0x0010, 0x0020, 0x0010,
         0x100, 0x00, 0x10, &handle, timeout);
     if (ret < 0)
@@ -240,7 +252,7 @@ int ble_try_connect (struct ble_t* self, bdaddr_t addr, uint16_t* dst, int timeo
     }
 
     *dst = handle;
-    return ret;
+    return 0;
 }
 
 int ble_read_rssi (struct ble_t* self, uint16_t device_handle, int8_t* dest, int timeout)

@@ -34,7 +34,7 @@ void node_destroy (struct node_basic* target)
     free(target);
 }
 
-void node_promote (struct node_basic* target)
+void* node_promote (struct node_basic* target)
 {
     target = realloc(target, sizeof(struct node_basic) + sizeof(struct node_info));
     
@@ -42,11 +42,13 @@ void node_promote (struct node_basic* target)
     info->est_x = info->est_y = info->dist = 0.0f;
     info->real_x = info->real_y = 0.0f;
     info->handle = 0;
+    return target;
 }
 
-void node_demote (struct node_basic* target)
+void* node_demote (struct node_basic* target)
 {
     target = realloc(target, sizeof(struct node_basic));
+    return target;
 }
 
 void node_insert (struct node_list* target_list, struct node_basic* target)
@@ -64,13 +66,14 @@ void node_remove_frm_list (struct node_list* target_list, struct node_basic* tar
 //give a node, node is still in list.
 struct node_basic* node_find (bdaddr_t addr, struct node_list* target_list)
 {
-    if (target_list->len == 0)
+    if (list_empty(&target_list->head))
     {
         return NULL;
     }
     struct node_basic* cur = NULL;
     struct list* list = &target_list->head;
     struct list_elem* end = list_end (list);
+    
     for (struct list_elem* e = list_front (list);
          e != end;
          e = list_next(e))

@@ -30,6 +30,11 @@ int prepare_flight ()
     return 0;
 }
 
+void report_status()
+{
+
+}
+
 int main()
 {
     init_main ("203.255.57.123", "4869");
@@ -37,14 +42,16 @@ int main()
 
     while (1)
     {
-        pos_scan_perimeter (pos, 10);
-        pos_query_nodes (pos, 10);
+        pos_scan_perimeter (pos, 100);
+        pos_query_nodes (pos, 100);
         comm_do_write (com, 100);
         comm_do_read(com, 100);
         pos_process_queries(pos, 100);
+        pos_try_connect(pos, 100);
         pos_prepare_estimation (pos, 100);
         pos_estimate_position (pos, 100);
     }
+    ble_disable_scan(ble);
 
     return 0;
 }

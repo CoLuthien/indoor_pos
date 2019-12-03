@@ -77,7 +77,6 @@ int pos_estimate_position (struct position_t* self, int timeout)
     struct list temp_list;
     list_init (&temp_list);
 
-
     for (struct list_elem* e = list_front (conn_list); e != end;)
     {
         node = node_get_elem (e);
@@ -88,12 +87,15 @@ int pos_estimate_position (struct position_t* self, int timeout)
             list_push_back (&temp_list, &node->elem);
             continue;
         }
+
         info->weight = sqrtf (powf(10.0f, ((float) info->rssi) / 10.0f)
                              );
-        
         weight_sum += info->weight;        
         e = list_next (e);
     }
+    if (list_empty (conn_list))
+        goto recover;
+
 
     end = list_end (conn_list);
     int len = list_size (conn_list);
@@ -123,6 +125,7 @@ int pos_estimate_position (struct position_t* self, int timeout)
     self->cur_x = est_x;
     self->cur_y = est_y;
 
+    recover:
     if (!list_empty (&temp_list))
     {
         end = list_end (&temp_list);
@@ -134,6 +137,8 @@ int pos_estimate_position (struct position_t* self, int timeout)
             list_push_back (conn_list, &node->elem);
         }        
     }
+
+    printf("%f %f\n", self->cur_x, self->cur_y);
     
     return 0;
 }
@@ -197,13 +202,8 @@ static int pos_process_query_result (struct position_t* self, mavlink_message_t*
     }
 
     bacpy (&target_addr, res.match_addr);
-
     node = node_find (target_addr, &queried_nodes);
-    if (NULL == node)
-    {
-        return -1;
-    }
-    
+
     if (0 == res.is_usable)
     {
         node_remove_frm_list (&queried_nodes, node);
@@ -211,14 +211,18 @@ static int pos_process_query_result (struct position_t* self, mavlink_message_t*
         return 0;
     }
 
+
+    if (NULL == node)
+    {
+        return -1;
+    }
+
     node->status = READY;
-    node_promote(node);
+    node = (struct node_basic*) node_promote(node);
 
     info = node->info;
     info->real_x = res.x;
     info->real_y = res.y;
-    printf("%s\n", batostr(res.match_addr));
-    printf("%d\n", node->status);
 
     node_remove_frm_list (&queried_nodes, node);
     node_insert (&self->ready_list, node);
@@ -237,11 +241,9 @@ void pos_process_queries (struct position_t* self, int timeout)
     len = comm_try_read (self->com , buf, MAVLINK_MAX_PACKET_LEN);
     if (len <= 0)
     {
-        pos_print_nodes(self, &self->conn_list);
         return;
     }
 
-    printf("%f %f\n", self->cur_x, self->cur_y);
     for (int i = 0; i < len; i++)
     {
         if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status))
@@ -270,7 +272,12 @@ void pos_try_connect (struct position_t* self, int timeout)
     struct list* conn_list = &self->conn_list.head;
     struct list* ready_list = &self->ready_list.head;
 
-    if (self->conn_list.len >= 16)
+    if (list_empty(ready_list))
+    {
+        return;
+    }
+
+    if (list_size(ready_list) >= 16)
     {
         return;
     }
@@ -278,15 +285,18 @@ void pos_try_connect (struct position_t* self, int timeout)
     node = node_get_elem (list_pop_front (ready_list));
     info = node->info;
 
-    if (ble_try_connect (self->ble, node->addr, &info->handle, timeout) <0)
+    if (ble_try_connect (self->ble, node->addr, &info->handle, timeout) < 0)
     {
         ble_cancel_connect (self->ble, timeout);
-        node_insert (ready_list, node);
+        ble_reenable_scan(self->ble);
+        list_push_back (ready_list, &node->elem);
         return;
     }
-
+    
+    ble_reenable_scan(self->ble);
     node->status = CONNECTED;
     node_insert (conn_list, node);
+
     return;
 }
 
