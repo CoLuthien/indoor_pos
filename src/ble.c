@@ -101,8 +101,10 @@ static inline int ble_parse_scan_result(uint8_t* buf, size_t len, bdaddr_t* dest
 }
 int ble_reenable_scan (struct ble_t* self)
 {
+    if (self->scan)
+        return 0;
     bool success = true;
-    int ret = hci_le_set_scan_enable(self->device, 0x01, 0x00, 1000);// we will handle duplicates
+    int ret = hci_le_set_scan_enable(self->device, 0x01, 0x01, 1000);// we will handle duplicates
     if (ret < 0)
     {
         success = false;
@@ -118,6 +120,9 @@ int ble_enable_scan(struct ble_t* self)
     ToDo:
         scan parameter change to dynamic
     */
+    if (self->scan)
+        return 0;
+
     int status = 0, ret = 0;
     int fd = self->device;
 
@@ -129,23 +134,13 @@ int ble_enable_scan(struct ble_t* self)
         printf("Failed to set scan parameters. Error code is %d\n", ret);
         goto fail;
     }
-/*
-    ret = ble_set_event_mask(fd); 
 
-    if (ret != 0)
-    {
-        printf("Failed to set event mask. Error code is %d\n", ret);
-        goto fail;
-    }
-*/
-
-    ret = hci_le_set_scan_enable(fd, 0x01, 0x00, 1000);// we will handle duplicates
+    ret = hci_le_set_scan_enable(fd, 0x01, 0x01, 1000);// we will handle duplicates
     if (ret < 0)
     {
         printf("failed to enable scan\n");
         goto fail;
     }
-
 
     struct hci_filter nf;
     hci_filter_clear(&nf);
@@ -153,6 +148,7 @@ int ble_enable_scan(struct ble_t* self)
     hci_filter_set_event(EVT_LE_META_EVENT, &nf);
     hci_filter_set_event(EVT_CMD_COMPLETE, &nf);
     hci_filter_set_event(EVT_CMD_STATUS, &nf);
+    hci_filter_set_event(EVT_DISCONN_COMPLETE, &nf);
 
     if(setsockopt(fd, SOL_HCI, HCI_FILTER, &nf, sizeof(nf)) < 0)
     {
@@ -189,6 +185,7 @@ int ble_get_scan_result (struct ble_t* self, bdaddr_t* dest, int timeout)
 {
     if (!self->scan)
     {
+        ble_reenable_scan (self);
         return -1;
     }
     uint8_t buf[HCI_MAX_EVENT_SIZE];
@@ -257,7 +254,11 @@ int ble_try_connect (struct ble_t* self, bdaddr_t addr, uint16_t* dst, int timeo
 
 int ble_read_rssi (struct ble_t* self, uint16_t device_handle, int8_t* dest, int timeout)
 {
-    return hci_read_rssi (self->device, device_handle, dest, timeout);
+    if (hci_read_rssi (self->device, device_handle, dest, timeout) < 0)
+    {
+        return -1;
+    }
+    return 0;
 }
 
 void ble_print_dup_filter (struct ble_t* self)

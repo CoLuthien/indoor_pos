@@ -13,7 +13,7 @@
 	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
 	    <field type="uint8_t" name="sys_stat"> status of system</field>
 		<field type="uint8_t" name="node_cnt"> number of active ble nodes</field>
-		<field type="float[2]" name="position"> current position, estimated</field>
+		<field type="float[3]" name="position"> current position, estimated</field>
 	</message>
 	<message id="2" name="query">
 		<description>query the found node is in DB</description>
@@ -29,12 +29,21 @@
 		<field type="uint8_t" name="is_usable"> is this node_usable? </field>
 		<field type="float" name="x"> x position </field>
 		<field type="float" name="y"> y position </field>
+		<field type="float" name="z"> z position </field>
 	</message>
 	<message id="4" name="command">
 		<description> command packet from server</description>
 	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
 	    <field type="uint8_t" name="sys_stat"> status of system</field>
 		<field type="uint8_t" name="command"> command from server</field>
+	</message>
+	<message id="5" name="node_report">
+		<description> node information report </description>
+		<field type="uint8_t[6]" name="source_addr">mac addr of drone</field>
+		<field type="uint8_t" name="report_cnt"> how many node to read?, maximum 16</field>
+		<field type="uint8_t" name="node_status"> status of node </field>
+		<field type="uint8_t[96]" name="node_addr"> node addr </field>
+		<field type="int8_t[16]" name="rssi"> current rssi of node </field>			
 	</message>
 
   </messages>

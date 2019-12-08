@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
 #include <bluetooth/bluetooth.h>
 
 #include "list.h"
@@ -23,6 +24,7 @@ struct node_basic
     bdaddr_t addr;
     uint8_t status;
     struct list_elem elem;
+    struct timespec update_at;
     char info[0];
 };
 

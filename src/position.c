@@ -138,7 +138,6 @@ int pos_estimate_position (struct position_t* self, int timeout)
         }        
     }
 
-    printf("%f %f\n", self->cur_x, self->cur_y);
     
     return 0;
 }
@@ -323,5 +322,6 @@ void pos_prepare_estimation (struct position_t* self, int timeout)
             info->rssi = 127;
             continue;
         }
+        clock_gettime (CLOCK_REALTIME, &node->update_at);
     }
 }

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 #include "ble.h"
 #include "position.h"
 #include "comm.h"
@@ -32,6 +33,7 @@ int prepare_flight ()
 
 void report_status()
 {
+    struct timespec ts;
 
 }
 
@@ -51,7 +53,6 @@ int main()
         pos_prepare_estimation (pos, 100);
         pos_estimate_position (pos, 100);
     }
-    ble_disable_scan(ble);
 
     return 0;
 }
