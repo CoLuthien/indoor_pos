@@ -18,7 +18,6 @@
 	<message id="2" name="query">
 		<description>query the found node is in DB</description>
 	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
-	    <field type="uint8_t" name="sys_stat"> status of system</field>
 		<field type="uint8_t" name="node_cnt"> number of querying nodes</field>
 		<field type="uint8_t[6]" name="found_addrs"> addr of found nodes</field>
 	</message>

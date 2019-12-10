@@ -25,7 +25,7 @@ void node_insert (struct node_list* target_list, struct node_basic* target);
 void node_remove_frm_list (struct node_list* target_list, struct node_basic* target);// remove from list, don't care what list.
 void node_destroy (struct node_basic* target); // will not handle list operation. before use, target must not in list.
 
-struct node_basic* node_find (bdaddr_t addr, struct node_list* target_list);
+struct node_basic* node_find (bdaddr_t addr, struct list* target_list);
 
 
 

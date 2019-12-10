@@ -64,17 +64,16 @@ void node_remove_frm_list (struct node_list* target_list, struct node_basic* tar
 }
 
 //give a node, node is still in list.
-struct node_basic* node_find (bdaddr_t addr, struct node_list* target_list)
+struct node_basic* node_find (bdaddr_t addr, struct list* target_list)
 {
-    if (list_empty(&target_list->head))
+    if (list_empty (target_list))
     {
         return NULL;
     }
     struct node_basic* cur = NULL;
-    struct list* list = &target_list->head;
-    struct list_elem* end = list_end (list);
+    struct list_elem* end = list_end (target_list);
     
-    for (struct list_elem* e = list_front (list);
+    for (struct list_elem* e = list_front (target_list);
          e != end;
          e = list_next(e))
     {
@@ -86,6 +85,7 @@ struct node_basic* node_find (bdaddr_t addr, struct node_list* target_list)
         }
         cur = NULL;
     }
+
     return cur;
 }
 

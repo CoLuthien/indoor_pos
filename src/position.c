@@ -50,23 +50,11 @@ static void pos_process_scan_result (struct position_t* self, bdaddr_t addr)
     node_insert (&unknown_nodes, node);
 }
 
-void pos_scan_perimeter (struct position_t* self, int timeout)
-{
-    bdaddr_t addr_found = {0x00, };
-    if (ble_get_scan_result (self->ble, &addr_found, timeout) < 0)
-    {
-        return;
-    }
-    //ok something outside.
-    pos_process_scan_result (self, addr_found);
-}
-
 int pos_estimate_position (struct position_t* self, int timeout)
 {
-    struct list* conn_list = &self->conn_list.head;
-    if (list_empty(conn_list))
+    struct list* conn_list = &self->ble->conn_list;
+    if (list_empty (conn_list))
     {
-        //ToDo: handle 
         return -1;
     }
 
@@ -79,6 +67,7 @@ int pos_estimate_position (struct position_t* self, int timeout)
 
     for (struct list_elem* e = list_front (conn_list); e != end;)
     {
+        // filter invalid rssi nodes
         node = node_get_elem (e);
         info = node->info;
         if (info->rssi == 127)
@@ -93,6 +82,7 @@ int pos_estimate_position (struct position_t* self, int timeout)
         weight_sum += info->weight;        
         e = list_next (e);
     }
+
     if (list_empty (conn_list))
         goto recover;
 
@@ -138,6 +128,8 @@ int pos_estimate_position (struct position_t* self, int timeout)
         }        
     }
 
+    node = node_get_elem (list_front (conn_list));
+    info = node->info;
     
     return 0;
 }
@@ -160,31 +152,6 @@ void pos_print_nodes (struct position_t* self, struct node_list* target)
         printf("%s\t", batostr(&cur->addr));
     }
     printf("\n\n");
-}
-
-int pos_query_nodes (struct position_t* self, int timeout)
-{
-    struct node_basic* node = NULL;
-    struct list* unknown_list = &unknown_nodes.head;
-    mavlink_message_t msg;
-    uint16_t len = 0;
-    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-    if (list_empty (unknown_list))
-    {
-        return -1;
-    }
-    struct list* queried_list = &queried_nodes.head;
-    uint8_t addrs[6] = {0,}; 
-    struct list_elem* e  = list_front (unknown_list);
-    node = node_get_elem (e);
-    node_remove_frm_list (&unknown_nodes, node);
-    node_insert (&queried_nodes, node);
-    bacpy (addrs, &node->addr);
-
-    mavlink_msg_query_pack (1, 1, &msg, &self->ble->my_addr, self->status, 1, addrs);
-    len = mavlink_msg_to_send_buffer (buf, &msg);
-    len = comm_append_write (self->com, buf, len);
-    return len;
 }
 
 static int pos_process_query_result (struct position_t* self, mavlink_message_t* msg)
@@ -299,29 +266,3 @@ void pos_try_connect (struct position_t* self, int timeout)
     return;
 }
 
-
-void pos_prepare_estimation (struct position_t* self, int timeout)
-{
-    struct node_basic* node = NULL;
-    struct node_info* info = NULL;
-    struct list* target_list = &self->conn_list.head;
-    if (list_empty (target_list))
-    {
-        return;
-    }
-
-    struct list_elem* end = list_end (target_list);
-
-    for (struct list_elem* e = list_front (target_list); e != end; e = list_next (e))
-    {
-        node = node_get_elem (e);
-        info = node->info;
-        ASSERT (node->status == CONNECTED);
-        if (ble_read_rssi (self->ble, info->handle, &info->rssi, timeout) < 0)
-        {
-            info->rssi = 127;
-            continue;
-        }
-        clock_gettime (CLOCK_REALTIME, &node->update_at);
-    }
-}

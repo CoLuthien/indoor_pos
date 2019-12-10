@@ -203,16 +203,15 @@ int comm_append_write (struct comm_t* self, uint8_t* buf, size_t len)
 
 int comm_try_read (struct comm_t* self, uint8_t* buf, size_t len)
 {
-    struct msg_elem* msg = NULL;
-    int ret = 0;
-
     if (list_empty (&self->read_queue))
         return -1;
-
+        
+    struct msg_elem* msg = NULL;
+    int ret = 0;
     struct list_elem* e = list_pop_front (&self->read_queue);
     msg = list_entry (e, struct msg_elem, elem);
     ret = msg->len;
-    memcpy (buf, msg->buf, len);
+    memcpy (buf, msg->buf, msg->len);
 
     return_elem(self, msg);
 

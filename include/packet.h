@@ -10,6 +10,12 @@ enum sys_stat
     FAIL_SAFE
 };
 
+enum component
+{
+    bluetooth = 1,
+    position
+};
+
 enum command
 {
     STAT_REPORT = 0

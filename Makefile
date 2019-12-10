@@ -8,7 +8,7 @@ build_dir = build
 include_path = -I include -I lib -I include/test
 src_dir = src
 
-srcv = ble.c comm.c node_ctl.c position.c ble_filter.c
+srcv = ble.c comm.c node_ctl.c position.c ble_filter.c ble_misc.c
 
 srcs = $(foreach src, $(srcv), $(src_dir)/$(src))
 
@@ -35,6 +35,9 @@ position.o: ./src/ble.c ./src/comm.c ./src/node_ctl.c ./src/position.c  ./list.o
 	$(CC) $(CFLAGS) $(include_path) -c $^ $(SYS_LIBS)
 
 ble_filter.o : ./src/ble_filter.c 
+	$(CC) $(CFLAGS) $(include_path) -c $^ $(SYS_LIBS)
+
+ble_misc.o: ./src/ble_misc.c
 	$(CC) $(CFLAGS) $(include_path) -c $^ $(SYS_LIBS)
 
 

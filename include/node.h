@@ -32,9 +32,9 @@ struct node_info
 {
     uint16_t handle;
     int8_t rssi;
-    float real_x, real_y;
+    float real_x, real_y, real_z;
     float weight, dist;
-    float est_x, est_y;
+    float est_x, est_y, est_z;
 };
 
 #endif

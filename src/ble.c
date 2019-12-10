@@ -1,17 +1,29 @@
-#include "ble.h"
-#include "list.h"
-#include "ble_filter.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
 
+#include "node_ctl.h" 
+#include "list.h"
+#include "ble.h"
+#include "ble_filter.h"
+#include "ble_misc.h"
+#include "mavlink.h"
+#include "comm.h"
+#include "packet.h"
 
+static struct list check_list = LIST_INITIALIZER(check_list);
+static struct list unknown_list = LIST_INITIALIZER(unknown_list);
+static struct list query_list = LIST_INITIALIZER (query_list);
 
-static struct list check_list;
 static int ble_set_event_mask (int fd);
+
+int ble_handle_disconn (struct ble_t* self, uint16_t handle);
+int ble_handle_meta_evt (struct ble_t* self, evt_le_meta_event* evt);
+
 static void ble_request_form(struct hci_request* form, uint16_t ocf, int clen, void* status, void* cparams);
+
 static void ble_request_form(struct hci_request* form, uint16_t ocf, int clen, void* status, void* cparams)
 {
     memset(form, 0, sizeof(struct hci_request));
@@ -22,6 +34,36 @@ static void ble_request_form(struct hci_request* form, uint16_t ocf, int clen, v
     form->rparam = status;
     form->rlen = 1;
 }
+
+int ble_handle_conn (struct ble_t* self, int timeout)
+{
+    if (list_empty (&self->ready_list))
+    {
+        return 0;// no need to do
+    }
+
+    struct node_basic* node = NULL;
+    struct node_info* info = NULL;
+
+    node = node_get_elem (list_front (&self->ready_list));
+    info = node->info;
+    ASSERT (node != NULL);
+    ASSERT (node->status == READY);
+
+    if (ble_try_connect (self->device, node->addr, &info->handle, timeout) < 0)
+    {
+        ble_cancel_connect (self->device, timeout);
+        ble_reenable_scan (self->device);
+        return -1;
+    }
+
+    list_remove (&node->elem);
+    ble_reenable_scan (self->device);
+    list_push_back (&self->conn_list, &node->elem);
+    node->status = CONNECTED;
+    return 0;
+}
+
 
 void ble_destroy (struct ble_t* ble)
 {
@@ -42,6 +84,7 @@ struct ble_t* ble_init()
     {
         goto fail;
     }
+
     if (hci_read_bd_addr(dev, &self->my_addr, 1000) < 0)
     {
         //can't identify self. something wrong.
@@ -50,9 +93,10 @@ struct ble_t* ble_init()
     self->device = dev;
     self->pfd.fd = dev;
     self->pfd.events = POLLIN;
-
+    list_init (&self->conn_list);
+    list_init (&self->ready_list);
+    ble_enable_scan (self->device);
     printf("ble init success %s is bdaddr\n", batostr(&self->my_addr));
-    list_init (&check_list);
 
     return self;
 
@@ -77,189 +121,224 @@ static int ble_set_event_mask(int fd)
     return hci_send_req(fd, &event_mask_rq, 1000);
 }
 
-
-/*
-    parse le_meta_evt, specifically EVT_LE_ADVERTISING REPORT
-    return 0 when packet exist,
-           -1 when packet is not the type
-*/
-static inline int ble_parse_scan_result(uint8_t* buf, size_t len, bdaddr_t* dest)// temporary implemetation
+int ble_get_query_pkt (struct ble_t* self, uint8_t buf [static MAVLINK_MAX_PACKET_LEN])
 {
-    evt_le_meta_event* meta_event;
-	le_advertising_info* info;
-    void* offset = NULL;
-
-    meta_event = (evt_le_meta_event*) (buf + HCI_EVENT_HDR_SIZE + 1);
-    if (meta_event->subevent == EVT_LE_ADVERTISING_REPORT)
+    struct list* target_list = &unknown_list;
+    if (list_empty (target_list))
     {
-        offset = meta_event->data + 1;
-        info = (le_advertising_info*) offset;
-        bacpy (dest, &info->bdaddr);
-        return 0;
+        return -1;
     }
-    return -1;
+    size_t len;
+    mavlink_message_t msg;
+
+    struct list_elem* e = list_pop_front (target_list);
+    struct node_basic* node = node_get_elem (e);
+    list_push_back (&query_list, e);
+
+    mavlink_msg_query_pack (1, 1, &msg, &self->my_addr, bluetooth, &node->addr);
+    len = mavlink_msg_to_send_buffer (buf, &msg);
+
+    return len;
 }
-int ble_reenable_scan (struct ble_t* self)
+
+int ble_handle_query (struct ble_t* self, mavlink_query_result_t* res)
 {
-    if (self->scan)
-        return 0;
-    bool success = true;
-    int ret = hci_le_set_scan_enable(self->device, 0x01, 0x01, 1000);// we will handle duplicates
-    if (ret < 0)
+    struct node_basic* node = NULL;
+    struct node_info* info = NULL;
+    bdaddr_t target;
+
+    bacpy (&target, res->match_addr);
+    node = node_find (target, &query_list);
+    ASSERT (node != NULL);
+
+    if (bacmp (res->addr, &self->my_addr) != 0)
     {
-        success = false;
+        list_remove (&node->elem);
+        node_destroy (node);
+        return -1;
     }
 
-    self->scan = success;
+    if (res->is_usable == 0)
+    {
+        list_remove (&node->elem);
+        node_destroy (node);
+        return 0;
+    }
+    //node is usable!
+
+    node->status = READY;
+    node = (struct node_basic*) node_promote (node);
+
+    info = node->info;
+    info->real_x = res->x;
+    info->real_y = res->y;
+    info->real_z = res->z;
+
+    list_remove (&node->elem);
+    list_push_back (&self->ready_list, &node->elem);
+    
+    return 0;
+}
+
+int ble_process_mavlink (struct ble_t* self, mavlink_message_t* msg)
+{
+    struct node_basic* node = NULL;
+    bdaddr_t target;
+    mavlink_query_result_t res; 
+    int ret = 0;
+    switch (msg->msgid)
+    {
+    case MAVLINK_MSG_ID_query_result:
+        mavlink_msg_query_result_decode (msg, &res);
+        ret = ble_handle_query (self, &res);        
+        break;
+    default:
+        break;
+    }
+
     return ret;
 }
 
-int ble_enable_scan(struct ble_t* self)
+void ble_read_rssis (struct ble_t* self, int timeout)
 {
-    /* 
-    ToDo:
-        scan parameter change to dynamic
-    */
-    if (self->scan)
-        return 0;
-
-    int status = 0, ret = 0;
-    int fd = self->device;
-
-    
-    ret = hci_le_set_scan_parameters(fd, 0x00, 0x0010, 0x0010, 0x00, 0x00, 1000);
-
-    if (ret != 0)
+    struct node_basic* node = NULL;
+    struct node_info* info = NULL;
+    struct list* target_list = &self->conn_list;
+    if (list_empty (target_list))
     {
-        printf("Failed to set scan parameters. Error code is %d\n", ret);
-        goto fail;
+        return;
     }
 
-    ret = hci_le_set_scan_enable(fd, 0x01, 0x01, 1000);// we will handle duplicates
-    if (ret < 0)
+    struct list_elem* end = list_end (target_list);
+    for (struct list_elem* e = list_front (target_list); 
+        e != end; 
+        e = list_next (e))
     {
-        printf("failed to enable scan\n");
-        goto fail;
+        node = node_get_elem (e);
+        info = node->info;
+        ASSERT (node->status == CONNECTED);
+        if (hci_read_rssi (self->device, info->handle, &info->rssi, timeout) < 0)
+        {
+            info->rssi = 127;
+            if (errno == EIO)
+            {
+                ble_handle_disconn (self, info->handle);
+            }
+            continue;
+        }
+        clock_gettime (CLOCK_REALTIME, &node->update_at);
     }
-
-    struct hci_filter nf;
-    hci_filter_clear(&nf);
-    hci_filter_set_ptype(HCI_EVENT_PKT, &nf);
-    hci_filter_set_event(EVT_LE_META_EVENT, &nf);
-    hci_filter_set_event(EVT_CMD_COMPLETE, &nf);
-    hci_filter_set_event(EVT_CMD_STATUS, &nf);
-    hci_filter_set_event(EVT_DISCONN_COMPLETE, &nf);
-
-    if(setsockopt(fd, SOL_HCI, HCI_FILTER, &nf, sizeof(nf)) < 0)
-    {
-        printf("Failed to set socket option.");
-        goto fail;
-    }
-
-    printf("Succeed to enable scan!\n");
-    self->scan = true;
-    return 0;
-
-    fail:
-        self->scan = false;
-        return -1;
 }
 
-inline int ble_disable_scan (struct ble_t* self)
+int ble_handle_disconn (struct ble_t* self, uint16_t handle_off)
 {
-    if (hci_le_set_scan_enable(self->device, 0x00, 0x00, 1000) < 0)
+    if (list_empty (&self->conn_list))
     {
-        return -1;
+        return -1; //nothing to do 
     }
-    reset_dup_entry (&check_list);
-    self->scan = false;
-    return 0;
+
+    struct list_elem* end = list_end (&self->conn_list);
+    struct node_basic* node = NULL;
+    struct node_info* info = NULL;
+    for (struct list_elem* e = list_front (&self->conn_list);
+         e != end;
+         e = list_next (e))
+    {
+        node = node_get_elem (e);
+        info = node->info;
+        if (info->handle == handle_off)
+        {
+            list_remove (&node->elem);
+            rm_dup_entry_byaddr (&check_list, node->addr);
+            node_destroy (node);
+            return 0;
+        }
+    }
+
+    printf("can't reach, disconn handle not exist on list\n");
+    exit(-1);
 }
 
-void ble_rm_addr (struct ble_t* self, bdaddr_t addr)
+int ble_handle_meta_evt (struct ble_t* self, evt_le_meta_event* evt)
 {
-    rm_dup_entry_byaddr (&check_list, addr);
-}
-//return on error -1,  success  0
-int ble_get_scan_result (struct ble_t* self, bdaddr_t* dest, int timeout)
-{
-    if (!self->scan)
+    void* offset = evt->data + 1;
+    struct dup_elem* dup = NULL;
+    struct node_basic* node = NULL;
+    int num_report = 0;
+    switch (evt->subevent)
     {
-        ble_reenable_scan (self);
-        return -1;
+    case EVT_LE_ADVERTISING_REPORT:
+        num_report = evt->data[0];
+        for (int i = 0; i < num_report; i++)
+        {
+            le_advertising_info* info = (le_advertising_info*)
+                            (offset);
+            dup = find_dup_entry (&check_list, info->bdaddr);
+            if (dup == NULL)
+            {
+                dup = create_dup_entry (info->bdaddr);
+                list_push_front (&check_list, &dup->elem);
+
+                node = node_create (info->bdaddr, FOUND);
+                list_push_back (&unknown_list, &node->elem);
+            }
+            offset = (info->data + info->length + 2);
+        }
+        break;
+    default:
+        printf("unknown evt code %d\n", evt->subevent);
+        break;
     }
+}
+
+int ble_process_hci_evt (struct ble_t* self, int timeout)
+{
     uint8_t buf[HCI_MAX_EVENT_SIZE];
     bdaddr_t addr = {0x00,};
+    hci_event_hdr* evt;
     short int old_evt = self->pfd.events;
-    int ret = 0, len = 0;
-    struct dup_elem* dup = NULL;
+    int ret = 0, len = 0, type = 0;
     
     self->pfd.events = POLLIN;
 
     ret = poll(&self->pfd, 1, timeout);
-    if (ret <= 0 || !(self->pfd.revents & POLLIN) )
+    if (ret <= 0 || !(self->pfd.revents & POLLIN))
     {
         return -1;        
     }
 
-    len = read (self->pfd.fd, buf, HCI_MAX_EVENT_SIZE);
-    if (ble_parse_scan_result (buf, len, &addr) < 0)
+    len = read (self->device, buf, HCI_MAX_EVENT_SIZE);
+
+    evt = (hci_event_hdr*) (buf + HCI_PKT_TYPE_LENGTH);
+    type = evt->evt;
+
+    printf("%x:code, %d \n", type, len);
     {
-        return -1;
+        evt_disconn_complete* disconn_evt; 
+        evt_le_meta_event* meta_evt; 
+        switch (type)
+        {
+        case EVT_DISCONN_COMPLETE:    
+            disconn_evt = (evt_disconn_complete*) 
+                            (buf + HCI_PKT_TYPE_LENGTH + HCI_EVENT_HDR_SIZE);
+            ret = ble_handle_disconn (self, disconn_evt->handle);
+            printf("disconn occur\n");
+            break;
+        case EVT_LE_META_EVENT:
+            meta_evt = (evt_le_meta_event*)
+                        (buf + HCI_EVENT_HDR_SIZE + HCI_PKT_TYPE_LENGTH);
+            ret = ble_handle_meta_evt (self, meta_evt);
+            break;
+        default:
+            ret = -1;// unknown pkt error
+            break;
+        }
     }
+    
 
-    //check duplication
-    dup = find_dup_entry (&check_list, addr);
-    if (NULL == dup) 
-    {
-        dup = create_dup_entry (addr);
-        insert_dup_entry (&check_list, dup);
-        bacpy (dest, &addr);
-        return 0;
-    }
-
-    return -1;
-}
-
-int ble_cancel_connect (struct ble_t* self, int timeout)
-{
-    int ret = 0;
-    struct hci_request rq = {0, };
-    evt_le_connection_complete evt = {0, };
-    rq.ogf = OGF_LE_CTL;
-    rq.ocf = OCF_LE_CREATE_CONN_CANCEL;
-    rq.event = EVT_LE_CONN_COMPLETE;
-    rq.cparam = NULL;
-    rq.clen = 0;
-    rq.rparam = &evt;
-    rq.rlen = EVT_LE_CONN_COMPLETE_SIZE;
-
-    return hci_send_req (self->device, &rq, timeout);
-}
-
-int ble_try_connect (struct ble_t* self, bdaddr_t addr, uint16_t* dst, int timeout)
-{
-    uint16_t handle = 1;
-    int ret = hci_le_create_conn(self->device, 0x0020, 0x0020,
-        0x00, 0x00, addr, 0x00, 0x0010, 0x0020, 0x0010,
-        0x100, 0x00, 0x10, &handle, timeout);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    *dst = handle;
     return 0;
 }
 
-int ble_read_rssi (struct ble_t* self, uint16_t device_handle, int8_t* dest, int timeout)
-{
-    if (hci_read_rssi (self->device, device_handle, dest, timeout) < 0)
-    {
-        return -1;
-    }
-    return 0;
-}
 
 void ble_print_dup_filter (struct ble_t* self)
 {
@@ -279,10 +358,3 @@ void ble_print_dup_filter (struct ble_t* self)
     }
     printf("\n\n");
 }
-
-int ble_end_connection (struct ble_t* self, uint16_t handle, uint8_t reason, int timeout)
-{
-    return hci_disconnect (self->device, handle, reason, timeout);
-}
-
-
