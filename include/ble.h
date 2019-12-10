@@ -30,9 +30,11 @@ int ble_process_hci_evt (struct ble_t* self, int timeout);
 int ble_get_query_pkt (struct ble_t* self, uint8_t buf [static MAVLINK_MAX_PACKET_LEN]);
 int ble_process_mavlink (struct ble_t* self, mavlink_message_t* msg);
 
-
 void ble_read_rssis (struct ble_t* self, int timeout);
 int ble_handle_conn (struct ble_t* self, int timeout);
+
+
+
 
 
 void ble_print_dup_filter (struct ble_t* self);

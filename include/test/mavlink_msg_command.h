@@ -1,7 +1,7 @@
 #pragma once
 // MESSAGE command PACKING
 
-#define MAVLINK_MSG_ID_command 4
+#define MAVLINK_MSG_ID_command 5
 
 MAVPACKED(
 typedef struct __mavlink_command_t {
@@ -12,17 +12,17 @@ typedef struct __mavlink_command_t {
 
 #define MAVLINK_MSG_ID_command_LEN 8
 #define MAVLINK_MSG_ID_command_MIN_LEN 8
-#define MAVLINK_MSG_ID_4_LEN 8
-#define MAVLINK_MSG_ID_4_MIN_LEN 8
+#define MAVLINK_MSG_ID_5_LEN 8
+#define MAVLINK_MSG_ID_5_MIN_LEN 8
 
 #define MAVLINK_MSG_ID_command_CRC 192
-#define MAVLINK_MSG_ID_4_CRC 192
+#define MAVLINK_MSG_ID_5_CRC 192
 
 #define MAVLINK_MSG_command_FIELD_ADDR_LEN 6
 
 #if MAVLINK_COMMAND_24BIT
 #define MAVLINK_MESSAGE_INFO_command { \
-    4, \
+    5, \
     "command", \
     3, \
     {  { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 0, offsetof(mavlink_command_t, addr) }, \

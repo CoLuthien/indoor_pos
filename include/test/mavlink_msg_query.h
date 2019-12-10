@@ -1,7 +1,7 @@
 #pragma once
 // MESSAGE query PACKING
 
-#define MAVLINK_MSG_ID_query 2
+#define MAVLINK_MSG_ID_query 3
 
 MAVPACKED(
 typedef struct __mavlink_query_t {
@@ -12,18 +12,18 @@ typedef struct __mavlink_query_t {
 
 #define MAVLINK_MSG_ID_query_LEN 13
 #define MAVLINK_MSG_ID_query_MIN_LEN 13
-#define MAVLINK_MSG_ID_2_LEN 13
-#define MAVLINK_MSG_ID_2_MIN_LEN 13
+#define MAVLINK_MSG_ID_3_LEN 13
+#define MAVLINK_MSG_ID_3_MIN_LEN 13
 
 #define MAVLINK_MSG_ID_query_CRC 223
-#define MAVLINK_MSG_ID_2_CRC 223
+#define MAVLINK_MSG_ID_3_CRC 223
 
 #define MAVLINK_MSG_query_FIELD_ADDR_LEN 6
 #define MAVLINK_MSG_query_FIELD_FOUND_ADDRS_LEN 6
 
 #if MAVLINK_COMMAND_24BIT
 #define MAVLINK_MESSAGE_INFO_query { \
-    2, \
+    3, \
     "query", \
     3, \
     {  { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 0, offsetof(mavlink_query_t, addr) }, \

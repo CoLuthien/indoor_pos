@@ -1,7 +1,7 @@
 #pragma once
 // MESSAGE node_report PACKING
 
-#define MAVLINK_MSG_ID_node_report 5
+#define MAVLINK_MSG_ID_node_report 6
 
 MAVPACKED(
 typedef struct __mavlink_node_report_t {
@@ -14,11 +14,11 @@ typedef struct __mavlink_node_report_t {
 
 #define MAVLINK_MSG_ID_node_report_LEN 120
 #define MAVLINK_MSG_ID_node_report_MIN_LEN 120
-#define MAVLINK_MSG_ID_5_LEN 120
-#define MAVLINK_MSG_ID_5_MIN_LEN 120
+#define MAVLINK_MSG_ID_6_LEN 120
+#define MAVLINK_MSG_ID_6_MIN_LEN 120
 
 #define MAVLINK_MSG_ID_node_report_CRC 16
-#define MAVLINK_MSG_ID_5_CRC 16
+#define MAVLINK_MSG_ID_6_CRC 16
 
 #define MAVLINK_MSG_node_report_FIELD_SOURCE_ADDR_LEN 6
 #define MAVLINK_MSG_node_report_FIELD_NODE_ADDR_LEN 96
@@ -26,7 +26,7 @@ typedef struct __mavlink_node_report_t {
 
 #if MAVLINK_COMMAND_24BIT
 #define MAVLINK_MESSAGE_INFO_node_report { \
-    5, \
+    6, \
     "node_report", \
     5, \
     {  { "source_addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 0, offsetof(mavlink_node_report_t, source_addr) }, \
