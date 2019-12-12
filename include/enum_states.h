@@ -1,5 +1,5 @@
-#ifndef _PACKET_H
-#define _PACKET_H
+#ifndef _ENUM_STATES_H
+#define _ENUM_STATES_H
 
 enum sys_stat
 {

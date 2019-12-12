@@ -55,19 +55,37 @@ int receive_pkt ()
             switch (msg.msgid)
             {
             case MAVLINK_MSG_ID_heartbeat:
-                /* code */
+                len = mavlink_msg_heartbeat_pack(1, 1, &msg, &ble->my_addr, 1, 0);
+                mavlink_msg_to_send_buffer (buf, &msg);
+                comm_append_write (com, buf, len);
                 break;
             case MAVLINK_MSG_ID_query_result:
                 ble_process_mavlink (ble, &msg);
                 break;
-            
+            case MAVLINK_MSG_ID_command:
+                break;            
             default:
                 break;
             }
+
+            break;
         }
     }
     
     return 0;     
+}
+
+int exec_report ()
+{
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+    int len = pos_get_stat_report (pos, buf);
+    comm_append_write (com, buf, len);
+    
+    len = ble_get_node_report (ble, buf);
+    comm_append_write (com, buf, len);
+    
+    return 0;
 }
 
 int main()
@@ -88,6 +106,8 @@ int main()
         ble_read_rssis (ble, 100);
 
         pos_estimate_position (pos, 100);
+
+//        exec_report ();
     }
 
     return 0;

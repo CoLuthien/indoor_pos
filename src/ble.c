@@ -11,7 +11,7 @@
 #include "ble_misc.h"
 #include "mavlink.h"
 #include "comm.h"
-#include "packet.h"
+#include "enum_states.h"
 
 static struct list check_list = LIST_INITIALIZER(check_list);
 static struct list unknown_list = LIST_INITIALIZER(unknown_list);
@@ -139,6 +139,39 @@ int ble_get_query_pkt (struct ble_t* self, uint8_t buf [static MAVLINK_MAX_PACKE
     len = mavlink_msg_to_send_buffer (buf, &msg);
 
     return len;
+}
+
+int ble_get_node_report (struct ble_t* self, uint8_t buf[static MAVLINK_MAX_PACKET_LEN])
+{
+    struct list* target_list = &self->conn_list;
+    if (list_empty (target_list))
+        return -1;
+    
+    struct node_basic* node = NULL;
+    struct node_info* info = NULL;
+    uint8_t addrs [96];
+    int8_t rssis [16];
+    uint8_t* offset = addrs;
+    struct list_elem* end = list_end (target_list);
+    int len = list_size (target_list), i = 0;
+    mavlink_message_t msg;
+
+    for (struct list_elem* e = list_front (target_list);
+         e != end;
+         e = list_next (e))
+    {
+        if (i > 15)
+            break;
+        node = node_get_elem (e);
+        info = node->info;
+        bacpy (addrs + (i * 6), &node->addr);
+        rssis[i] = info->rssi;        
+        i++;
+    }
+
+    mavlink_msg_node_report_pack (1, 1, &msg, &self->my_addr, i, node->status, addrs, rssis);
+
+    return mavlink_msg_to_send_buffer (buf, &msg);
 }
 
 int ble_handle_query (struct ble_t* self, mavlink_query_result_t* res)
@@ -329,6 +362,8 @@ int ble_process_hci_evt (struct ble_t* self, int timeout)
                         (buf + HCI_EVENT_HDR_SIZE + HCI_PKT_TYPE_LENGTH);
             ret = ble_handle_meta_evt (self, meta_evt);
             break;
+        case EVT_CMD_COMPLETE:
+
         default:
             ret = -1;// unknown pkt error
             break;

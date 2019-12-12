@@ -6,15 +6,6 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#define QUERY_THRESHOLD 8
-#define MAX_PKT_LEN 8
-
-static struct node_list unknown_nodes;
-static struct node_list queried_nodes;
-
-static int pos_process_query_result (struct position_t* self, mavlink_message_t* msg);
-static void pos_process_scan_result (struct position_t* self, bdaddr_t addr);
-
 struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
 {
     if (NULL == ble || NULL == com)
@@ -27,10 +18,6 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
     self->com = com;
     ASSERT (ble != NULL && com != NULL);
 
-    node_list_init (&self->ready_list);
-    node_list_init (&self->conn_list);
-    node_list_init (&unknown_nodes);
-    node_list_init (&queried_nodes);
 
     self->status = INIT;
     self->pos_valid = false;
@@ -43,11 +30,17 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
         return NULL;
 }
 
-static void pos_process_scan_result (struct position_t* self, bdaddr_t addr)
+int pos_get_stat_report (struct position_t* self, uint8_t buf[static MAVLINK_MAX_PACKET_LEN])
 {
-    //ble object handle duplicates. 
-    struct node_basic* node = node_create (addr, FOUND);
-    node_insert (&unknown_nodes, node);
+    size_t len;
+    mavlink_message_t msg;
+    float pos[3];
+    pos[0] = self->cur_x; pos[1] = self->cur_y; pos[2] = self->cur_z;
+
+    mavlink_msg_pos_report_pack (1, 1, &msg, &self->ble->my_addr,
+                 self->status, self->est_at.tv_sec, self->est_at.tv_nsec, pos);
+    len = mavlink_msg_to_send_buffer (buf, &msg);
+    return len;
 }
 
 int pos_estimate_position (struct position_t* self, int timeout)
@@ -114,6 +107,7 @@ int pos_estimate_position (struct position_t* self, int timeout)
 
     self->cur_x = est_x;
     self->cur_y = est_y;
+    clock_gettime(CLOCK_REALTIME, &self->est_at);
 
     recover:
     if (!list_empty (&temp_list))
@@ -152,117 +146,5 @@ void pos_print_nodes (struct position_t* self, struct node_list* target)
         printf("%s\t", batostr(&cur->addr));
     }
     printf("\n\n");
-}
-
-static int pos_process_query_result (struct position_t* self, mavlink_message_t* msg)
-{
-    mavlink_query_result_t res;
-    mavlink_msg_query_result_decode (msg, &res);
-    struct node_basic* node = NULL;
-    struct node_info* info = NULL;
-    bdaddr_t target_addr;
-
-    if (bacmp (&self->ble->my_addr, res.addr) != 0)
-    {
-        return -1;//server error or pkt error
-    }
-
-    bacpy (&target_addr, res.match_addr);
-    node = node_find (target_addr, &queried_nodes);
-
-    if (0 == res.is_usable)
-    {
-        node_remove_frm_list (&queried_nodes, node);
-        node_destroy (node);
-        return 0;
-    }
-
-
-    if (NULL == node)
-    {
-        return -1;
-    }
-
-    node->status = READY;
-    node = (struct node_basic*) node_promote(node);
-
-    info = node->info;
-    info->real_x = res.x;
-    info->real_y = res.y;
-
-    node_remove_frm_list (&queried_nodes, node);
-    node_insert (&self->ready_list, node);
-    
-    return 0;
-}
-
-void pos_process_queries (struct position_t* self, int timeout)
-{
-    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-    int len;
-    mavlink_message_t msg;
-    mavlink_status_t status;
-
-
-    len = comm_try_read (self->com , buf, MAVLINK_MAX_PACKET_LEN);
-    if (len <= 0)
-    {
-        return;
-    }
-
-    for (int i = 0; i < len; i++)
-    {
-        if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status))
-        {
-            switch (msg.msgid)
-            {
-            case MAVLINK_MSG_ID_heartbeat:
-                break;
-            case MAVLINK_MSG_ID_query_result:
-                pos_process_query_result (self, &msg);
-                break;
-            case MAVLINK_MSG_ID_command:
-                break;
-            
-            default:
-                break;
-            }
-        }
-    }
-}
-
-void pos_try_connect (struct position_t* self, int timeout)
-{
-    struct node_basic* node = NULL;
-    struct node_info* info = NULL;
-    struct list* conn_list = &self->conn_list.head;
-    struct list* ready_list = &self->ready_list.head;
-
-    if (list_empty(ready_list))
-    {
-        return;
-    }
-
-    if (list_size(ready_list) >= 16)
-    {
-        return;
-    }
-
-    node = node_get_elem (list_pop_front (ready_list));
-    info = node->info;
-
-    if (ble_try_connect (self->ble, node->addr, &info->handle, timeout) < 0)
-    {
-        ble_cancel_connect (self->ble, timeout);
-        ble_reenable_scan(self->ble);
-        list_push_back (ready_list, &node->elem);
-        return;
-    }
-    
-    ble_reenable_scan(self->ble);
-    node->status = CONNECTED;
-    node_insert (conn_list, node);
-
-    return;
 }
 

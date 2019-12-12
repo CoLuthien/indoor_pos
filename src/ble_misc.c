@@ -64,7 +64,8 @@ int ble_enable_scan(int device)
     int fd = device;
 
     
-    ret = hci_le_set_scan_parameters(fd, 0x00, 0x0010, 0x0010, 0x00, 0x00, 1000);
+    ret = hci_le_set_scan_parameters(fd, 0x00, 0x0100, 0x0100,
+     0x00, 0x00, 1000);
 
     if (ret != 0)
     {

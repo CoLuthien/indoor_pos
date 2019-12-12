@@ -8,20 +8,28 @@
 	  <field type="uint8_t" name="sys_stat"> status of system</field>
 	  <field type="uint8_t" name="err_code"> error code, in case of server error</field>
 	</message>
-	<message id="1" name="stat_report">
+	<message id="1" name="pos_report">
 		<description>report current status to server </description>
 	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
-	    <field type="uint8_t" name="sys_stat"> status of system</field>
-		<field type="uint8_t" name="node_cnt"> number of active ble nodes</field>
+	    <field type="uint8_t" name="pos_mode"> positioning mode</field>
+		<field type="int64_t" name="est_sec"> time of last estimation of positon </field>
+		<field type="int64_t" name="est_nsec"> time of last estimation of positon in nsec </field>
 		<field type="float[3]" name="position"> current position, estimated</field>
 	</message>
-	<message id="2" name="query">
+	<message id="2" name="ble_report">
+		<description> report ble status to server </description>
+	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
+	    <field type="uint8_t" name="pos_mode"> positioning mode</field>
+		<field type="uint8_t" name="conn_size"> # of connected nodes </field>
+		<field type="uint8_t" name="ready_size"> # of in range nodes </field>
+	</message>
+	<message id="3" name="query">
 		<description>query the found node is in DB</description>
 	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
 		<field type="uint8_t" name="node_cnt"> number of querying nodes</field>
 		<field type="uint8_t[6]" name="found_addrs"> addr of found nodes</field>
 	</message>
-	<message id="3" name="query_result">
+	<message id="4" name="query_result">
 		<description>result of query </description>
 	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
 		<field type="uint8_t[6]" name="match_addr"> matched node's addr</field>
@@ -30,19 +38,26 @@
 		<field type="float" name="y"> y position </field>
 		<field type="float" name="z"> z position </field>
 	</message>
-	<message id="4" name="command">
+	<message id="5" name="command">
 		<description> command packet from server</description>
 	    <field type="uint8_t[6]" name="addr">mac address of drone</field>
 	    <field type="uint8_t" name="sys_stat"> status of system</field>
 		<field type="uint8_t" name="command"> command from server</field>
 	</message>
-	<message id="5" name="node_report">
+	<message id="6" name="node_report">
 		<description> node information report </description>
 		<field type="uint8_t[6]" name="source_addr">mac addr of drone</field>
 		<field type="uint8_t" name="report_cnt"> how many node to read?, maximum 16</field>
 		<field type="uint8_t" name="node_status"> status of node </field>
 		<field type="uint8_t[96]" name="node_addr"> node addr </field>
 		<field type="int8_t[16]" name="rssi"> current rssi of node </field>			
+	</message>
+	<message id="7" name="request">
+		<description> request info to server </description>
+		<field type="uint8_t[6]" name="addr"> mac addr of drone </field>
+		<field type="uint8_t" name="requset"> request number </field>
+		<field type="int64_t" name="req_sec"> time of request </field>
+		<field type="int64_t" name="req_nsec"> time of request nsec </field>
 	</message>
 
   </messages>
