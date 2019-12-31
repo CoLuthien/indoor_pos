@@ -346,6 +346,7 @@ int ble_process_hci_evt (struct ble_t* self, int timeout)
     type = evt->evt;
 
     printf("%x:code, %d \n", type, len);
+
     {
         evt_disconn_complete* disconn_evt; 
         evt_le_meta_event* meta_evt; 
@@ -355,7 +356,6 @@ int ble_process_hci_evt (struct ble_t* self, int timeout)
             disconn_evt = (evt_disconn_complete*) 
                             (buf + HCI_PKT_TYPE_LENGTH + HCI_EVENT_HDR_SIZE);
             ret = ble_handle_disconn (self, disconn_evt->handle);
-            printf("disconn occur\n");
             break;
         case EVT_LE_META_EVENT:
             meta_evt = (evt_le_meta_event*)

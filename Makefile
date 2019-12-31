@@ -40,7 +40,6 @@ ble_filter.o : ./src/ble_filter.c
 ble_misc.o: ./src/ble_misc.c
 	$(CC) $(CFLAGS) $(include_path) -c $^ $(SYS_LIBS)
 
-
-
-
-
+.PHONY: clean
+clean:
+	rm $(objs) list.o $(target)

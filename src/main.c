@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <time.h>
+#include <fcntl.h>
 #include "ble.h"
 #include "position.h"
 #include "comm.h"
@@ -11,6 +12,20 @@ struct comm_t* com = NULL;
 struct position_t* pos = NULL;
 
 
+void read_server_attr (char* addr, char* port)
+{
+    FILE* fp = fopen ("/etc/pos.addr.conf", "r");
+    uint8_t buf[128];
+    
+    size_t len = fread (buf, sizeof(char), 128, fp);
+    memcpy(addr, buf, len);
+    fclose (fp);
+
+    fp = fopen ("/etc/pos.port.conf", "r");
+    len = fread (buf, sizeof(char), 128, fp);
+    memcpy (port, buf, len);
+    fclose (fp);
+}
 
 int init_main (const char* serv_addr, const char* serv_port)
 {//todo
@@ -64,6 +79,9 @@ int receive_pkt ()
                 break;
             case MAVLINK_MSG_ID_command:
                 break;            
+            case MAVLINK_MSG_ID_path_response:
+
+                break;
             default:
                 break;
             }
@@ -90,7 +108,11 @@ int exec_report ()
 
 int main()
 {
-    init_main ("203.255.57.123", "4869");
+    char addr[128], port[128];
+    read_server_attr (addr, port);
+
+    printf("read addr: %s\nread port: %s\n", addr, port);
+    init_main (addr, port);
 
     while (1)
     {

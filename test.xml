@@ -59,6 +59,21 @@
 		<field type="int64_t" name="req_sec"> time of request </field>
 		<field type="int64_t" name="req_nsec"> time of request nsec </field>
 	</message>
+	<message id="8" name="path_request">
+		<description> request path to replay to server </description>
+		<field type="uint8_t[6]" name="addr"> drone addr</field>
+		<field type="uint8_t" name="back_to"> back to second</field>
+		<field type="uint16_t" name="interval"> interval in ms</field>
+	</message>
+	
+	<message id="9" name="path_response">
+		<description> request path to replay to server </description>
+		<field type="uint8_t[6]" name="addr"> drone addr</field>
+		<field type="uint8_t" name="index"> order of replay </field>
+		<field type="float" name="x"> x position </field>
+		<field type="float" name="y"> y position </field>
+		<field type="float" name="z"> z position </field>
+	</message>
 
   </messages>
 </mavlink>

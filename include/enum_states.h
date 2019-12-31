@@ -1,12 +1,13 @@
 #ifndef _ENUM_STATES_H
 #define _ENUM_STATES_H
 
-enum sys_stat
+enum pos_stat
 {
     INIT = 0,
     ONLY_BLE,
     ONLY_GPS,
-    BOTH_BG,
+    BOTH,
+    BACKSTEP,
     FAIL_SAFE
 };
 

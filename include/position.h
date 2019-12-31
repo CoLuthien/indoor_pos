@@ -26,8 +26,9 @@ struct position_t
 struct position_t* pos_init (struct ble_t* ble, struct comm_t* com);
 
 int pos_estimate_position (struct position_t* self, int timeout);
-
 int pos_get_stat_report (struct position_t* self, uint8_t buf [static MAVLINK_MAX_PACKET_LEN]);
+
+void pos_update_status (struct position_t* self, uint8_t status);
 
 
 //debuggin purpose
