@@ -8,21 +8,20 @@ typedef struct __mavlink_node_report_t {
  uint8_t source_addr[6]; /*<  mac addr of drone*/
  uint8_t report_cnt; /*<   how many node to read?, maximum 16*/
  uint8_t node_status; /*<   status of node */
- uint8_t node_addr[96]; /*<   node addr */
- int8_t rssi[16]; /*<   current rssi of node */
+ uint8_t node_addr[6]; /*<   node addr */
+ int8_t rssi; /*<   current rssi of node */
 }) mavlink_node_report_t;
 
-#define MAVLINK_MSG_ID_node_report_LEN 120
-#define MAVLINK_MSG_ID_node_report_MIN_LEN 120
-#define MAVLINK_MSG_ID_6_LEN 120
-#define MAVLINK_MSG_ID_6_MIN_LEN 120
+#define MAVLINK_MSG_ID_node_report_LEN 15
+#define MAVLINK_MSG_ID_node_report_MIN_LEN 15
+#define MAVLINK_MSG_ID_6_LEN 15
+#define MAVLINK_MSG_ID_6_MIN_LEN 15
 
-#define MAVLINK_MSG_ID_node_report_CRC 16
-#define MAVLINK_MSG_ID_6_CRC 16
+#define MAVLINK_MSG_ID_node_report_CRC 43
+#define MAVLINK_MSG_ID_6_CRC 43
 
 #define MAVLINK_MSG_node_report_FIELD_SOURCE_ADDR_LEN 6
-#define MAVLINK_MSG_node_report_FIELD_NODE_ADDR_LEN 96
-#define MAVLINK_MSG_node_report_FIELD_RSSI_LEN 16
+#define MAVLINK_MSG_node_report_FIELD_NODE_ADDR_LEN 6
 
 #if MAVLINK_COMMAND_24BIT
 #define MAVLINK_MESSAGE_INFO_node_report { \
@@ -32,8 +31,8 @@ typedef struct __mavlink_node_report_t {
     {  { "source_addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 0, offsetof(mavlink_node_report_t, source_addr) }, \
          { "report_cnt", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_node_report_t, report_cnt) }, \
          { "node_status", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_node_report_t, node_status) }, \
-         { "node_addr", NULL, MAVLINK_TYPE_UINT8_T, 96, 8, offsetof(mavlink_node_report_t, node_addr) }, \
-         { "rssi", NULL, MAVLINK_TYPE_INT8_T, 16, 104, offsetof(mavlink_node_report_t, rssi) }, \
+         { "node_addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 8, offsetof(mavlink_node_report_t, node_addr) }, \
+         { "rssi", NULL, MAVLINK_TYPE_INT8_T, 0, 14, offsetof(mavlink_node_report_t, rssi) }, \
          } \
 }
 #else
@@ -43,8 +42,8 @@ typedef struct __mavlink_node_report_t {
     {  { "source_addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 0, offsetof(mavlink_node_report_t, source_addr) }, \
          { "report_cnt", NULL, MAVLINK_TYPE_UINT8_T, 0, 6, offsetof(mavlink_node_report_t, report_cnt) }, \
          { "node_status", NULL, MAVLINK_TYPE_UINT8_T, 0, 7, offsetof(mavlink_node_report_t, node_status) }, \
-         { "node_addr", NULL, MAVLINK_TYPE_UINT8_T, 96, 8, offsetof(mavlink_node_report_t, node_addr) }, \
-         { "rssi", NULL, MAVLINK_TYPE_INT8_T, 16, 104, offsetof(mavlink_node_report_t, rssi) }, \
+         { "node_addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 8, offsetof(mavlink_node_report_t, node_addr) }, \
+         { "rssi", NULL, MAVLINK_TYPE_INT8_T, 0, 14, offsetof(mavlink_node_report_t, rssi) }, \
          } \
 }
 #endif
@@ -63,23 +62,23 @@ typedef struct __mavlink_node_report_t {
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_node_report_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-                               const uint8_t *source_addr, uint8_t report_cnt, uint8_t node_status, const uint8_t *node_addr, const int8_t *rssi)
+                               const uint8_t *source_addr, uint8_t report_cnt, uint8_t node_status, const uint8_t *node_addr, int8_t rssi)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_node_report_LEN];
     _mav_put_uint8_t(buf, 6, report_cnt);
     _mav_put_uint8_t(buf, 7, node_status);
+    _mav_put_int8_t(buf, 14, rssi);
     _mav_put_uint8_t_array(buf, 0, source_addr, 6);
-    _mav_put_uint8_t_array(buf, 8, node_addr, 96);
-    _mav_put_int8_t_array(buf, 104, rssi, 16);
+    _mav_put_uint8_t_array(buf, 8, node_addr, 6);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_node_report_LEN);
 #else
     mavlink_node_report_t packet;
     packet.report_cnt = report_cnt;
     packet.node_status = node_status;
+    packet.rssi = rssi;
     mav_array_memcpy(packet.source_addr, source_addr, sizeof(uint8_t)*6);
-    mav_array_memcpy(packet.node_addr, node_addr, sizeof(uint8_t)*96);
-    mav_array_memcpy(packet.rssi, rssi, sizeof(int8_t)*16);
+    mav_array_memcpy(packet.node_addr, node_addr, sizeof(uint8_t)*6);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_node_report_LEN);
 #endif
 
@@ -102,23 +101,23 @@ static inline uint16_t mavlink_msg_node_report_pack(uint8_t system_id, uint8_t c
  */
 static inline uint16_t mavlink_msg_node_report_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
                                mavlink_message_t* msg,
-                                   const uint8_t *source_addr,uint8_t report_cnt,uint8_t node_status,const uint8_t *node_addr,const int8_t *rssi)
+                                   const uint8_t *source_addr,uint8_t report_cnt,uint8_t node_status,const uint8_t *node_addr,int8_t rssi)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_node_report_LEN];
     _mav_put_uint8_t(buf, 6, report_cnt);
     _mav_put_uint8_t(buf, 7, node_status);
+    _mav_put_int8_t(buf, 14, rssi);
     _mav_put_uint8_t_array(buf, 0, source_addr, 6);
-    _mav_put_uint8_t_array(buf, 8, node_addr, 96);
-    _mav_put_int8_t_array(buf, 104, rssi, 16);
+    _mav_put_uint8_t_array(buf, 8, node_addr, 6);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_node_report_LEN);
 #else
     mavlink_node_report_t packet;
     packet.report_cnt = report_cnt;
     packet.node_status = node_status;
+    packet.rssi = rssi;
     mav_array_memcpy(packet.source_addr, source_addr, sizeof(uint8_t)*6);
-    mav_array_memcpy(packet.node_addr, node_addr, sizeof(uint8_t)*96);
-    mav_array_memcpy(packet.rssi, rssi, sizeof(int8_t)*16);
+    mav_array_memcpy(packet.node_addr, node_addr, sizeof(uint8_t)*6);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_node_report_LEN);
 #endif
 
@@ -165,23 +164,23 @@ static inline uint16_t mavlink_msg_node_report_encode_chan(uint8_t system_id, ui
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_node_report_send(mavlink_channel_t chan, const uint8_t *source_addr, uint8_t report_cnt, uint8_t node_status, const uint8_t *node_addr, const int8_t *rssi)
+static inline void mavlink_msg_node_report_send(mavlink_channel_t chan, const uint8_t *source_addr, uint8_t report_cnt, uint8_t node_status, const uint8_t *node_addr, int8_t rssi)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_node_report_LEN];
     _mav_put_uint8_t(buf, 6, report_cnt);
     _mav_put_uint8_t(buf, 7, node_status);
+    _mav_put_int8_t(buf, 14, rssi);
     _mav_put_uint8_t_array(buf, 0, source_addr, 6);
-    _mav_put_uint8_t_array(buf, 8, node_addr, 96);
-    _mav_put_int8_t_array(buf, 104, rssi, 16);
+    _mav_put_uint8_t_array(buf, 8, node_addr, 6);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_node_report, buf, MAVLINK_MSG_ID_node_report_MIN_LEN, MAVLINK_MSG_ID_node_report_LEN, MAVLINK_MSG_ID_node_report_CRC);
 #else
     mavlink_node_report_t packet;
     packet.report_cnt = report_cnt;
     packet.node_status = node_status;
+    packet.rssi = rssi;
     mav_array_memcpy(packet.source_addr, source_addr, sizeof(uint8_t)*6);
-    mav_array_memcpy(packet.node_addr, node_addr, sizeof(uint8_t)*96);
-    mav_array_memcpy(packet.rssi, rssi, sizeof(int8_t)*16);
+    mav_array_memcpy(packet.node_addr, node_addr, sizeof(uint8_t)*6);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_node_report, (const char *)&packet, MAVLINK_MSG_ID_node_report_MIN_LEN, MAVLINK_MSG_ID_node_report_LEN, MAVLINK_MSG_ID_node_report_CRC);
 #endif
 }
@@ -208,23 +207,23 @@ static inline void mavlink_msg_node_report_send_struct(mavlink_channel_t chan, c
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_node_report_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  const uint8_t *source_addr, uint8_t report_cnt, uint8_t node_status, const uint8_t *node_addr, const int8_t *rssi)
+static inline void mavlink_msg_node_report_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  const uint8_t *source_addr, uint8_t report_cnt, uint8_t node_status, const uint8_t *node_addr, int8_t rssi)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char *buf = (char *)msgbuf;
     _mav_put_uint8_t(buf, 6, report_cnt);
     _mav_put_uint8_t(buf, 7, node_status);
+    _mav_put_int8_t(buf, 14, rssi);
     _mav_put_uint8_t_array(buf, 0, source_addr, 6);
-    _mav_put_uint8_t_array(buf, 8, node_addr, 96);
-    _mav_put_int8_t_array(buf, 104, rssi, 16);
+    _mav_put_uint8_t_array(buf, 8, node_addr, 6);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_node_report, buf, MAVLINK_MSG_ID_node_report_MIN_LEN, MAVLINK_MSG_ID_node_report_LEN, MAVLINK_MSG_ID_node_report_CRC);
 #else
     mavlink_node_report_t *packet = (mavlink_node_report_t *)msgbuf;
     packet->report_cnt = report_cnt;
     packet->node_status = node_status;
+    packet->rssi = rssi;
     mav_array_memcpy(packet->source_addr, source_addr, sizeof(uint8_t)*6);
-    mav_array_memcpy(packet->node_addr, node_addr, sizeof(uint8_t)*96);
-    mav_array_memcpy(packet->rssi, rssi, sizeof(int8_t)*16);
+    mav_array_memcpy(packet->node_addr, node_addr, sizeof(uint8_t)*6);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_node_report, (const char *)packet, MAVLINK_MSG_ID_node_report_MIN_LEN, MAVLINK_MSG_ID_node_report_LEN, MAVLINK_MSG_ID_node_report_CRC);
 #endif
 }
@@ -272,7 +271,7 @@ static inline uint8_t mavlink_msg_node_report_get_node_status(const mavlink_mess
  */
 static inline uint16_t mavlink_msg_node_report_get_node_addr(const mavlink_message_t* msg, uint8_t *node_addr)
 {
-    return _MAV_RETURN_uint8_t_array(msg, node_addr, 96,  8);
+    return _MAV_RETURN_uint8_t_array(msg, node_addr, 6,  8);
 }
 
 /**
@@ -280,9 +279,9 @@ static inline uint16_t mavlink_msg_node_report_get_node_addr(const mavlink_messa
  *
  * @return   current rssi of node 
  */
-static inline uint16_t mavlink_msg_node_report_get_rssi(const mavlink_message_t* msg, int8_t *rssi)
+static inline int8_t mavlink_msg_node_report_get_rssi(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_int8_t_array(msg, rssi, 16,  104);
+    return _MAV_RETURN_int8_t(msg,  14);
 }
 
 /**
@@ -298,7 +297,7 @@ static inline void mavlink_msg_node_report_decode(const mavlink_message_t* msg, 
     node_report->report_cnt = mavlink_msg_node_report_get_report_cnt(msg);
     node_report->node_status = mavlink_msg_node_report_get_node_status(msg);
     mavlink_msg_node_report_get_node_addr(msg, node_report->node_addr);
-    mavlink_msg_node_report_get_rssi(msg, node_report->rssi);
+    node_report->rssi = mavlink_msg_node_report_get_rssi(msg);
 #else
         uint8_t len = msg->len < MAVLINK_MSG_ID_node_report_LEN? msg->len : MAVLINK_MSG_ID_node_report_LEN;
         memset(node_report, 0, MAVLINK_MSG_ID_node_report_LEN);

@@ -106,7 +106,7 @@ int comm_do_write (struct comm_t* self, int timeout)
     int nread = -1, len = 0;
     short int old_evt = self->pfd.events;
 
-    self->pfd.events = POLLOUT;
+    self->pfd.events = POLLOUT | POLLHUP;
     struct msg_elem* msg = list_entry (list_pop_front (&self->write_queue), struct msg_elem, elem);
     
     nread = poll (&self->pfd, 1, timeout);
@@ -171,12 +171,13 @@ static struct msg_elem* request_elem (struct comm_t* self)
     struct msg_elem* msg = NULL;
     if (list_empty (&self->elem_buffer))
     {
-        msg = malloc (sizeof(struct msg_elem));
+        msg = malloc (sizeof (struct msg_elem));
         msg->len = 0;
         return msg;
     }
 
-    return list_entry (list_pop_front(&self->elem_buffer), struct msg_elem, elem);
+    msg = list_entry (list_pop_front(&self->elem_buffer), struct msg_elem, elem);
+    return msg;
 }
 
 static void return_elem (struct comm_t* self, struct msg_elem* msg)

@@ -61,6 +61,7 @@ int ble_handle_conn (struct ble_t* self, int timeout)
     ble_reenable_scan (self->device);
     list_push_back (&self->conn_list, &node->elem);
     node->status = CONNECTED;
+    printf("connected %s \n", batostr(&node->addr));
     return 0;
 }
 
@@ -145,33 +146,23 @@ int ble_get_node_report (struct ble_t* self, uint8_t buf[static MAVLINK_MAX_PACK
 {
     struct list* target_list = &self->conn_list;
     if (list_empty (target_list))
+    {
         return -1;
-    
-    struct node_basic* node = NULL;
-    struct node_info* info = NULL;
-    uint8_t addrs [96];
-    int8_t rssis [16];
-    uint8_t* offset = addrs;
-    struct list_elem* end = list_end (target_list);
-    int len = list_size (target_list), i = 0;
+    }
     mavlink_message_t msg;
 
-    for (struct list_elem* e = list_front (target_list);
-         e != end;
-         e = list_next (e))
-    {
-        if (i > 15)
-            break;
-        node = node_get_elem (e);
-        info = node->info;
-        bacpy (addrs + (i * 6), &node->addr);
-        rssis[i] = info->rssi;        
-        i++;
-    }
+    struct list_elem* e = list_pop_front(target_list);
+    struct node_basic* node = node_get_elem (e);
+    struct node_info* info = node->info;
+    bdaddr_t addr;
+    bacpy (&addr, &node->addr);
 
-    mavlink_msg_node_report_pack (1, 1, &msg, &self->my_addr, i, node->status, addrs, rssis);
+    mavlink_msg_node_report_pack (1, 1, &msg, &self->my_addr, 1, node->status, &addr, info->rssi);
 
-    return mavlink_msg_to_send_buffer (buf, &msg);
+    int len = mavlink_msg_to_send_buffer (buf, &msg);
+
+    list_push_back(target_list, e);
+    return len;
 }
 
 int ble_handle_query (struct ble_t* self, mavlink_query_result_t* res)
@@ -195,10 +186,11 @@ int ble_handle_query (struct ble_t* self, mavlink_query_result_t* res)
     {
         list_remove (&node->elem);
         node_destroy (node);
+        printf("node not usable\n");
         return 0;
     }
     //node is usable!
-
+    printf("node usable\n");
     node->status = READY;
     node = (struct node_basic*) node_promote (node);
 
@@ -282,6 +274,7 @@ int ble_handle_disconn (struct ble_t* self, uint16_t handle_off)
         if (info->handle == handle_off)
         {
             list_remove (&node->elem);
+            printf("node disconn %s\n", batostr(&node->addr));
             rm_dup_entry_byaddr (&check_list, node->addr);
             node_destroy (node);
             return 0;
@@ -344,8 +337,6 @@ int ble_process_hci_evt (struct ble_t* self, int timeout)
 
     evt = (hci_event_hdr*) (buf + HCI_PKT_TYPE_LENGTH);
     type = evt->evt;
-
-    printf("%x:code, %d \n", type, len);
 
     {
         evt_disconn_complete* disconn_evt; 

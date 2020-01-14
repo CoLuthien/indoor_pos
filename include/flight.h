@@ -6,28 +6,40 @@
 
 #include "list.h"
 #include "comm.h"
+#include "ble.h"
+#include "position.h"
 
 struct point 
 {
     struct list_elem elem;
-    uint64_t idx;
+    struct timespec at;
     float x, y, z;
 };
 
 struct flight_t
 {
+    struct ble_t* ble;
+    struct position_t* pos;
     uint8_t sys_status;
-    uint16_t reserve_count; // how much entry of path?
-    uint64_t time_measure_start;
+    struct timespec start_at, request_time;
 
-    struct comm_t* com;
     
-    struct list prev_path;
-    struct list recvd_prev_path;
+    struct list record;
+    bool is_full;
 };
 
-int request_prev_path (struct flight_t* self);
-int 
+struct flight_t* flt_init ();
+void flt_destroy (struct flight_t* target);
+
+int flt_request_record (struct flight_t* self, uint8_t buf [static MAVLINK_MAX_PACKET_LEN]);
+void flt_handle_mavlink (struct flight_t* self, mavlink_message_t* msg);
+
+bool flt_fetch_loc (struct flight_t* self, struct point* loc);
+void flt_record_loc (struct flight_t* self);
+
+void flt_make_path (struct flight_t* self);
+
+
 
 
 

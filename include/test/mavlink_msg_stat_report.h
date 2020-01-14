@@ -5,21 +5,21 @@
 
 MAVPACKED(
 typedef struct __mavlink_stat_report_t {
- float position[3]; /*<   current position, estimated*/
+ float position[2]; /*<   current position, estimated*/
  uint8_t addr[6]; /*<  mac address of drone*/
  uint8_t sys_stat; /*<   status of system*/
  uint8_t node_cnt; /*<   number of active ble nodes*/
 }) mavlink_stat_report_t;
 
-#define MAVLINK_MSG_ID_stat_report_LEN 20
-#define MAVLINK_MSG_ID_stat_report_MIN_LEN 20
-#define MAVLINK_MSG_ID_1_LEN 20
-#define MAVLINK_MSG_ID_1_MIN_LEN 20
+#define MAVLINK_MSG_ID_stat_report_LEN 16
+#define MAVLINK_MSG_ID_stat_report_MIN_LEN 16
+#define MAVLINK_MSG_ID_1_LEN 16
+#define MAVLINK_MSG_ID_1_MIN_LEN 16
 
-#define MAVLINK_MSG_ID_stat_report_CRC 169
-#define MAVLINK_MSG_ID_1_CRC 169
+#define MAVLINK_MSG_ID_stat_report_CRC 229
+#define MAVLINK_MSG_ID_1_CRC 229
 
-#define MAVLINK_MSG_stat_report_FIELD_POSITION_LEN 3
+#define MAVLINK_MSG_stat_report_FIELD_POSITION_LEN 2
 #define MAVLINK_MSG_stat_report_FIELD_ADDR_LEN 6
 
 #if MAVLINK_COMMAND_24BIT
@@ -27,20 +27,20 @@ typedef struct __mavlink_stat_report_t {
     1, \
     "stat_report", \
     4, \
-    {  { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 12, offsetof(mavlink_stat_report_t, addr) }, \
-         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 18, offsetof(mavlink_stat_report_t, sys_stat) }, \
-         { "node_cnt", NULL, MAVLINK_TYPE_UINT8_T, 0, 19, offsetof(mavlink_stat_report_t, node_cnt) }, \
-         { "position", NULL, MAVLINK_TYPE_FLOAT, 3, 0, offsetof(mavlink_stat_report_t, position) }, \
+    {  { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 8, offsetof(mavlink_stat_report_t, addr) }, \
+         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 14, offsetof(mavlink_stat_report_t, sys_stat) }, \
+         { "node_cnt", NULL, MAVLINK_TYPE_UINT8_T, 0, 15, offsetof(mavlink_stat_report_t, node_cnt) }, \
+         { "position", NULL, MAVLINK_TYPE_FLOAT, 2, 0, offsetof(mavlink_stat_report_t, position) }, \
          } \
 }
 #else
 #define MAVLINK_MESSAGE_INFO_stat_report { \
     "stat_report", \
     4, \
-    {  { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 12, offsetof(mavlink_stat_report_t, addr) }, \
-         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 18, offsetof(mavlink_stat_report_t, sys_stat) }, \
-         { "node_cnt", NULL, MAVLINK_TYPE_UINT8_T, 0, 19, offsetof(mavlink_stat_report_t, node_cnt) }, \
-         { "position", NULL, MAVLINK_TYPE_FLOAT, 3, 0, offsetof(mavlink_stat_report_t, position) }, \
+    {  { "addr", NULL, MAVLINK_TYPE_UINT8_T, 6, 8, offsetof(mavlink_stat_report_t, addr) }, \
+         { "sys_stat", NULL, MAVLINK_TYPE_UINT8_T, 0, 14, offsetof(mavlink_stat_report_t, sys_stat) }, \
+         { "node_cnt", NULL, MAVLINK_TYPE_UINT8_T, 0, 15, offsetof(mavlink_stat_report_t, node_cnt) }, \
+         { "position", NULL, MAVLINK_TYPE_FLOAT, 2, 0, offsetof(mavlink_stat_report_t, position) }, \
          } \
 }
 #endif
@@ -62,16 +62,16 @@ static inline uint16_t mavlink_msg_stat_report_pack(uint8_t system_id, uint8_t c
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_stat_report_LEN];
-    _mav_put_uint8_t(buf, 18, sys_stat);
-    _mav_put_uint8_t(buf, 19, node_cnt);
-    _mav_put_float_array(buf, 0, position, 3);
-    _mav_put_uint8_t_array(buf, 12, addr, 6);
+    _mav_put_uint8_t(buf, 14, sys_stat);
+    _mav_put_uint8_t(buf, 15, node_cnt);
+    _mav_put_float_array(buf, 0, position, 2);
+    _mav_put_uint8_t_array(buf, 8, addr, 6);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_stat_report_LEN);
 #else
     mavlink_stat_report_t packet;
     packet.sys_stat = sys_stat;
     packet.node_cnt = node_cnt;
-    mav_array_memcpy(packet.position, position, sizeof(float)*3);
+    mav_array_memcpy(packet.position, position, sizeof(float)*2);
     mav_array_memcpy(packet.addr, addr, sizeof(uint8_t)*6);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_stat_report_LEN);
 #endif
@@ -98,16 +98,16 @@ static inline uint16_t mavlink_msg_stat_report_pack_chan(uint8_t system_id, uint
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_stat_report_LEN];
-    _mav_put_uint8_t(buf, 18, sys_stat);
-    _mav_put_uint8_t(buf, 19, node_cnt);
-    _mav_put_float_array(buf, 0, position, 3);
-    _mav_put_uint8_t_array(buf, 12, addr, 6);
+    _mav_put_uint8_t(buf, 14, sys_stat);
+    _mav_put_uint8_t(buf, 15, node_cnt);
+    _mav_put_float_array(buf, 0, position, 2);
+    _mav_put_uint8_t_array(buf, 8, addr, 6);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_stat_report_LEN);
 #else
     mavlink_stat_report_t packet;
     packet.sys_stat = sys_stat;
     packet.node_cnt = node_cnt;
-    mav_array_memcpy(packet.position, position, sizeof(float)*3);
+    mav_array_memcpy(packet.position, position, sizeof(float)*2);
     mav_array_memcpy(packet.addr, addr, sizeof(uint8_t)*6);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_stat_report_LEN);
 #endif
@@ -158,16 +158,16 @@ static inline void mavlink_msg_stat_report_send(mavlink_channel_t chan, const ui
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char buf[MAVLINK_MSG_ID_stat_report_LEN];
-    _mav_put_uint8_t(buf, 18, sys_stat);
-    _mav_put_uint8_t(buf, 19, node_cnt);
-    _mav_put_float_array(buf, 0, position, 3);
-    _mav_put_uint8_t_array(buf, 12, addr, 6);
+    _mav_put_uint8_t(buf, 14, sys_stat);
+    _mav_put_uint8_t(buf, 15, node_cnt);
+    _mav_put_float_array(buf, 0, position, 2);
+    _mav_put_uint8_t_array(buf, 8, addr, 6);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_stat_report, buf, MAVLINK_MSG_ID_stat_report_MIN_LEN, MAVLINK_MSG_ID_stat_report_LEN, MAVLINK_MSG_ID_stat_report_CRC);
 #else
     mavlink_stat_report_t packet;
     packet.sys_stat = sys_stat;
     packet.node_cnt = node_cnt;
-    mav_array_memcpy(packet.position, position, sizeof(float)*3);
+    mav_array_memcpy(packet.position, position, sizeof(float)*2);
     mav_array_memcpy(packet.addr, addr, sizeof(uint8_t)*6);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_stat_report, (const char *)&packet, MAVLINK_MSG_ID_stat_report_MIN_LEN, MAVLINK_MSG_ID_stat_report_LEN, MAVLINK_MSG_ID_stat_report_CRC);
 #endif
@@ -199,16 +199,16 @@ static inline void mavlink_msg_stat_report_send_buf(mavlink_message_t *msgbuf, m
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
     char *buf = (char *)msgbuf;
-    _mav_put_uint8_t(buf, 18, sys_stat);
-    _mav_put_uint8_t(buf, 19, node_cnt);
-    _mav_put_float_array(buf, 0, position, 3);
-    _mav_put_uint8_t_array(buf, 12, addr, 6);
+    _mav_put_uint8_t(buf, 14, sys_stat);
+    _mav_put_uint8_t(buf, 15, node_cnt);
+    _mav_put_float_array(buf, 0, position, 2);
+    _mav_put_uint8_t_array(buf, 8, addr, 6);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_stat_report, buf, MAVLINK_MSG_ID_stat_report_MIN_LEN, MAVLINK_MSG_ID_stat_report_LEN, MAVLINK_MSG_ID_stat_report_CRC);
 #else
     mavlink_stat_report_t *packet = (mavlink_stat_report_t *)msgbuf;
     packet->sys_stat = sys_stat;
     packet->node_cnt = node_cnt;
-    mav_array_memcpy(packet->position, position, sizeof(float)*3);
+    mav_array_memcpy(packet->position, position, sizeof(float)*2);
     mav_array_memcpy(packet->addr, addr, sizeof(uint8_t)*6);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_stat_report, (const char *)packet, MAVLINK_MSG_ID_stat_report_MIN_LEN, MAVLINK_MSG_ID_stat_report_LEN, MAVLINK_MSG_ID_stat_report_CRC);
 #endif
@@ -227,7 +227,7 @@ static inline void mavlink_msg_stat_report_send_buf(mavlink_message_t *msgbuf, m
  */
 static inline uint16_t mavlink_msg_stat_report_get_addr(const mavlink_message_t* msg, uint8_t *addr)
 {
-    return _MAV_RETURN_uint8_t_array(msg, addr, 6,  12);
+    return _MAV_RETURN_uint8_t_array(msg, addr, 6,  8);
 }
 
 /**
@@ -237,7 +237,7 @@ static inline uint16_t mavlink_msg_stat_report_get_addr(const mavlink_message_t*
  */
 static inline uint8_t mavlink_msg_stat_report_get_sys_stat(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_uint8_t(msg,  18);
+    return _MAV_RETURN_uint8_t(msg,  14);
 }
 
 /**
@@ -247,7 +247,7 @@ static inline uint8_t mavlink_msg_stat_report_get_sys_stat(const mavlink_message
  */
 static inline uint8_t mavlink_msg_stat_report_get_node_cnt(const mavlink_message_t* msg)
 {
-    return _MAV_RETURN_uint8_t(msg,  19);
+    return _MAV_RETURN_uint8_t(msg,  15);
 }
 
 /**
@@ -257,7 +257,7 @@ static inline uint8_t mavlink_msg_stat_report_get_node_cnt(const mavlink_message
  */
 static inline uint16_t mavlink_msg_stat_report_get_position(const mavlink_message_t* msg, float *position)
 {
-    return _MAV_RETURN_float_array(msg, position, 3,  0);
+    return _MAV_RETURN_float_array(msg, position, 2,  0);
 }
 
 /**

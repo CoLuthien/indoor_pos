@@ -32,11 +32,13 @@ struct position_t* pos_init (struct ble_t* ble, struct comm_t* com)
 
 int pos_get_stat_report (struct position_t* self, uint8_t buf[static MAVLINK_MAX_PACKET_LEN])
 {
+    if (!self->pos_valid)
+        return -1;
     size_t len;
     mavlink_message_t msg;
     float pos[3];
     pos[0] = self->cur_x; pos[1] = self->cur_y; pos[2] = self->cur_z;
-
+    
     mavlink_msg_pos_report_pack (1, 1, &msg, &self->ble->my_addr,
                  self->status, self->est_at.tv_sec, self->est_at.tv_nsec, pos);
     len = mavlink_msg_to_send_buffer (buf, &msg);
@@ -48,6 +50,7 @@ int pos_estimate_position (struct position_t* self, int timeout)
     struct list* conn_list = &self->ble->conn_list;
     if (list_empty (conn_list))
     {
+        self->pos_valid = false;
         return -1;
     }
 
@@ -107,6 +110,7 @@ int pos_estimate_position (struct position_t* self, int timeout)
 
     self->cur_x = est_x;
     self->cur_y = est_y;
+    self->pos_valid =  true;
     clock_gettime(CLOCK_REALTIME, &self->est_at);
 
     recover:

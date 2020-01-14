@@ -49,8 +49,8 @@
 		<field type="uint8_t[6]" name="source_addr">mac addr of drone</field>
 		<field type="uint8_t" name="report_cnt"> how many node to read?, maximum 16</field>
 		<field type="uint8_t" name="node_status"> status of node </field>
-		<field type="uint8_t[96]" name="node_addr"> node addr </field>
-		<field type="int8_t[16]" name="rssi"> current rssi of node </field>			
+		<field type="uint8_t[6]" name="node_addr"> node addr </field>
+		<field type="int8_t" name="rssi"> current rssi of node </field>			
 	</message>
 	<message id="7" name="request">
 		<description> request info to server </description>

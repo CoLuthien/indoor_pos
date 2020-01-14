@@ -46,7 +46,7 @@ int ble_end_connection (int device, uint16_t handle, uint8_t reason, int timeout
 int ble_reenable_scan (int device)
 {
  
-    int ret = hci_le_set_scan_enable(device, 0x01, 0x01, 1000);// we will handle duplicates
+    int ret = hci_le_set_scan_enable(device, 0x01, 0x00, 1000);// we will handle duplicates
     if (ret < 0)
     {
         return -1;
@@ -73,7 +73,7 @@ int ble_enable_scan(int device)
         goto fail;
     }
 
-    ret = hci_le_set_scan_enable(fd, 0x01, 0x01, 1000);// we will handle duplicates
+    ret = hci_le_set_scan_enable(fd, 0x01, 0x00, 1000);// we will handle duplicates
     if (ret < 0)
     {
         printf("failed to enable scan\n");

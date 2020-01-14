@@ -1,14 +1,19 @@
 #ifndef _ENUM_STATES_H
 #define _ENUM_STATES_H
 
-enum pos_stat
+enum positioning_method
 {
     INIT = 0,
     ONLY_BLE,
     ONLY_GPS,
-    BOTH,
-    BACKSTEP,
-    FAIL_SAFE
+    BOTH
+};
+
+enum system_status 
+{
+    SYS_INIT = 0,
+    FORWARD_STEP,
+    BACKSTEP
 };
 
 enum component

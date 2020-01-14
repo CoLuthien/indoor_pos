@@ -11,6 +11,8 @@ struct ble_t* ble = NULL;
 struct comm_t* com = NULL;
 struct position_t* pos = NULL;
 
+//for temperary logging
+static FILE* log = NULL;
 
 void read_server_attr (char* addr, char* port)
 {
@@ -34,6 +36,9 @@ int init_main (const char* serv_addr, const char* serv_port)
 
     ble = ble_init ();
     pos = pos_init (ble, com);
+
+    //temp 
+    log = fopen ("flight_log.txt", "rw");
 
     return 0;
 }
@@ -98,25 +103,45 @@ int exec_report ()
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
     int len = pos_get_stat_report (pos, buf);
+    if (len < 0)
+        return 0;
     comm_append_write (com, buf, len);
     
-    len = ble_get_node_report (ble, buf);
-    comm_append_write (com, buf, len);
+    uint8_t nbuf[MAVLINK_MAX_PACKET_LEN];
+    len = ble_get_node_report (ble, nbuf);
+    if (len < 0)
+        return 0;
+    comm_append_write (com, nbuf, len);
     
     return 0;
 }
 
+void record_flight()
+{
+    struct timespec ts;
+    if (pos->pos_valid)
+    {
+        fprintf(log, "%f, %f, %f, %d, %d\n",
+            pos->cur_x, pos->cur_y, pos->cur_z,
+            pos->est_at.tv_sec, pos->est_at.tv_nsec
+        );
+    }
+
+}
+
 int main()
 {
-    char addr[128], port[128];
-    read_server_attr (addr, port);
+    char addr[128] = "203.255.57.123", port[128] ="4869";
+    //read_server_attr (addr, port);
 
     printf("read addr: %s\nread port: %s\n", addr, port);
-    init_main (addr, port);
-
+    if (!init_main (addr, port))
+        printf("init done!\n");
+    
+    
     while (1)
     {
-        ble_process_hci_evt (ble, 10);//pos_scan_perimeter (pos, 100);
+        ble_process_hci_evt (ble, 10);
         exec_query ();
         
         comm_do_write (com, 100);
@@ -128,8 +153,8 @@ int main()
         ble_read_rssis (ble, 100);
 
         pos_estimate_position (pos, 100);
-
-//        exec_report ();
+        record_flight ();
+        //exec_report ();
     }
 
     return 0;
